@@ -1,123 +1,72 @@
+import { Segment } from "./sponsorblock-types";
+
 const enum SliderType {
   Chapters = 'chapters',
   Default = 'default'
 }
 
+interface SliderComponentProps {
+  video: HTMLVideoElement;
+  segments: Segment[];
+}
+
 export class SliderComponent extends EventTarget {
   slider: HTMLDivElement;
   type: SliderType;
-  observer?: MutationObserver;
+  observer: MutationObserver;
+  video: HTMLVideoElement;
+  segments: Segment[];
+  segmentsoverlay: HTMLDivElement;
 
-  constructor() {
+  constructor(props: SliderComponentProps) {
     super();
 
-    let chaptersSlider = document.querySelector('.ytlr-progress-bar__slider-base');
-    let defaultSlider = document.querySelector('.ytlr-progress-bar__slider');
+    const chaptersSlider = document.querySelector('.ytlr-progress-bar__slider-base');
+    const defaultSlider = document.querySelector('.ytlr-progress-bar__slider');
+
+    const slider = (chaptersSlider ?? defaultSlider) as HTMLDivElement | null;
+
+    if (!slider) {
+      throw new Error('slider not found');
+    }
+    this.slider = slider;
 
     this.type = chaptersSlider ? SliderType.Chapters : SliderType.Default;
 
-    this.slider = chaptersSlider ?? defaultSlider;
+    this.video = props.video;
+    this.segments = props.segments;
 
-    this.waitToVideo().then(
-      () => {
-        try {
-          console.log('SliderComponent: video element found');
+    this.segmentsoverlay = document.createElement('div');
 
-          const video = document.querySelector('video');
+    this.observer = new MutationObserver(this.onMutationCallback);
 
-          if (!video) {
-            console.log('inititalize video completed', video);
+    if (this.slider.classList.contains('ytlr-progress-bar__slider-base')) {
+      this.segmentsoverlay.style.marginTop = '-1.18em';
+    } else {
+      this.segmentsoverlay.style.marginTop = '';
+    }
 
-            throw new Error("video element not found");
-          }
+    /** Сначала создаем элемент наложения. */
+    this.createOverlay();
 
-          this.video = video;
-
-          this.observer = new MutationObserver(this.onMutationCallback);
-
-
-          this.observer.observe(this.video, {
-            attributes: true,
-            attributeOldValue: true,
-            // attributeFilter: ['src', 'style'],
-          });
-
-          this.video.addEventListener('play', this.onPlayEvent);
-          this.video.addEventListener('pause', this.onPauseEvent);
-          this.video.addEventListener('timeupdate', this.onTimeupdateEvent);
-          this.video.addEventListener('durationchange', this.onDurationChangeEvent);
-
-          console.log('inititalize video completed');
-        } catch (e) {
-          console.error('inititalize video failed', e);
-        }
-      }
-    ).catch((e) => {
-      throw Error(e);
-    });
+    /** Теперь можно подписываться. */
+    this.observe();
   }
-
-  waitToVideo = () => new Promise<void>((resolve, reject) => {
-    const body = document.querySelector('body') as HTMLBodyElement;
-
-    if (body.classList.contains('WEB_PAGE_TYPE_WATCH')) {
-      console.log('SliderComponent.waitToVideo(): already watch', body);
-
-      resolve();
-    }
-
-    const callback = () => {
-      observer.disconnect();
-      resolve();
-    }
-
-    const observer = new MutationObserver((mutations, _observer) => {
-      for (const mutation of mutations) {
-        const classList = (mutation.target as HTMLBodyElement).classList;
-
-        /** Если изменился режим просмотра на воспроизведение. */
-        if (classList.contains('WEB_PAGE_TYPE_WATCH') && mutation.oldValue?.includes('WEB_PAGE_TYPE_BROWSE')) {
-          console.log('SliderComponent.waitToVideo(): Режим воспроизведения');
-
-          callback();
-        }
-
-        /** Если режим воспроизведения прекращён. */
-        if (classList.contains('WEB_PAGE_TYPE_BROWSE') && mutation.oldValue?.includes('WEB_PAGE_TYPE_WATCH')) {
-          console.log('SliderComponent.waitToVideo(): Выход из режима воспроизведения');
-        }
-
-        const base = mutation.attributeName === 'class' && mutation.type === 'attributes';
-
-        /** Если произошла первая загрузка страницы. */
-        if (base && classList.contains('WEB_PAGE_TYPE_BROWSE') && mutation.oldValue === null) {
-          console.log('SliderComponent.waitToVideo(): Первая загрузка страницы');
-        }
-      }
-    });
-
-    observer.observe(body, {
-      attributes: true,
-      attributeOldValue: true,
-      attributeFilter: ['class'],
-    });
-  });
 
   onMutationCallback: MutationCallback = (mutations) => {
     for (const mutation of mutations) {
-      console.log(
-        'SliderComponent.onMutationCallback():',
-        mutation.attributeName,
-        mutation.oldValue,
-        mutation.attributeName ? mutation.target[mutation.attributeName as keyof typeof mutation.target] : undefined
-      );
+      if (mutation.removedNodes) {
+        for (const node of mutation.removedNodes) {
+          if (node === this.segmentsoverlay) {
+            console.info('bringing back segments overlay');
+            // this.slider.appendChild(this.segmentsoverlay);
+            this.mount();
+            // break; // TODO: REQUIRED?
+          }
+        }
+      }
     }
   }
-
-  onPlayEvent = (...args: unknown[]) => { console.log('SliderComponent play event', args) }
-  onPauseEvent = (...args: unknown[]) => { console.log('SliderComponent pause event', args) }
-  onDurationChangeEvent = (...args: unknown[]) => { console.log('SliderComponent timeupdate event', args) }
-  onTimeupdateEvent = (...args: unknown[]) => { console.log('SliderComponent durationchange event', args) }
 
   check = () => { }
 
@@ -125,8 +74,45 @@ export class SliderComponent extends EventTarget {
     this.dispatchEvent(new Event('something'));
   }
 
-  render = () => {
-    
+  observe = () => {
+    console.log('observe slider listen');
+
+    this.observer.observe(this.slider, {
+      childList: true,
+    });
+  }
+
+  mount = () => {
+    this.observer.disconnect();
+
+    this.slider.appendChild(this.segmentsoverlay);
+
+    this.observe();
+  }
+
+  createOverlay = () => {
+    const videoDuration = this.video.duration;
+
+    this.segments.forEach((segment) => {
+      const [start, end] = segment.segment;
+
+      const barType = {
+        color: 'blue',
+        opacity: 0.7
+      };
+
+      const transform = `translateX(${(start / videoDuration) * 100.0}%) scaleX(${(end - start) / videoDuration})`;
+
+      const elm = document.createElement('div');
+      elm.classList.add('ytlr-progress-bar__played');
+      elm.style['background'] = barType.color;
+      elm.style['opacity'] = barType.opacity.toString();
+      elm.style.webkitTransform = transform;
+
+      console.info('Generated element', { segment, elm, transform });
+
+      this.segmentsoverlay.appendChild(elm);
+    });
   }
 }
 

@@ -22,24 +22,26 @@ export class VideoEventListener extends EventTarget {
 
           this.observer = new MutationObserver(this.onMutationCallback);
 
-
           this.observer.observe(this.video, {
             attributes: true,
             attributeOldValue: true,
             // attributeFilter: ['src', 'style'],
           });
 
-          this.video.addEventListener('play', this.onPlayEvent);
-          this.video.addEventListener('pause', this.onPauseEvent);
-          this.video.addEventListener('timeupdate', this.onTimeupdateEvent);
-          this.video.addEventListener('durationchange', this.onDurationChangeEvent);
+          // this.video.addEventListener('play', this.onPlayEvent);
+          // this.video.addEventListener('pause', this.onPauseEvent);
+          // this.video.addEventListener('timeupdate', this.onTimeupdateEvent);
+          // this.video.addEventListener('durationchange', this.onDurationChangeEvent);
 
           console.log('inititalize video completed');
+
+          this.dispatchEvent(new Event('ready'));
         } catch (e) {
           console.error('inititalize video failed', e);
         }
       }
     ).catch((e) => {
+      console.error(e);
       throw Error(e);
     });
   }
@@ -101,10 +103,10 @@ export class VideoEventListener extends EventTarget {
     }
   }
 
-  onPlayEvent = (...args: unknown[]) => { console.log('VideoEventListener play event', args) }
-  onPauseEvent = (...args: unknown[]) => { console.log('VideoEventListener pause event', args) }
-  onDurationChangeEvent = (...args: unknown[]) => { console.log('VideoEventListener timeupdate event', args) }
-  onTimeupdateEvent = (...args: unknown[]) => { console.log('VideoEventListener durationchange event', args) }
+  // onPlayEvent = (...args: unknown[]) => { console.log('VideoEventListener play event', args) }
+  // onPauseEvent = (...args: unknown[]) => { console.log('VideoEventListener pause event', args) }
+  // onDurationChangeEvent = (...args: unknown[]) => { console.log('VideoEventListener timeupdate event', args) }
+  // onTimeupdateEvent = (...args: unknown[]) => { console.log('VideoEventListener durationchange event', args) }
 
   check = () => { }
 
@@ -113,12 +115,6 @@ export class VideoEventListener extends EventTarget {
   }
 
   render = () => {
-    
+
   }
 }
-
-// const instance = new VideoEventListener();
-// instance.addEventListener('something', (e) => {
-//   console.log('Instance fired "something".', e);
-// });
-// instance.doSomething();

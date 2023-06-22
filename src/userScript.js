@@ -1,11 +1,13 @@
 import { waitForChildAdd } from './utils';
+import { run } from './user-script';
 
 import './adblock.js';
-import './sponsorblock.ts';
+// import './sponsorblock.ts';
 import './ui.js';
 
 // This IIFE is to keep the video element fill the entire window so that screensaver doesn't kick in.
 (async () => {
+  run();
   /** @type {HTMLVideoElement} */
   const video = await waitForChildAdd(
     document.body,
