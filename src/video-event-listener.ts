@@ -8,13 +8,9 @@ export class VideoEventListener extends EventTarget {
     this.waitToVideo().then(
       () => {
         try {
-          console.log('VideoEventListener: video element found');
-
           const video = document.querySelector('video');
 
           if (!video) {
-            console.log('inititalize video completed', video);
-
             throw new Error("video element not found");
           }
 
@@ -25,7 +21,7 @@ export class VideoEventListener extends EventTarget {
           this.observer.observe(this.video, {
             attributes: true,
             attributeOldValue: true,
-            // attributeFilter: ['src', 'style'],
+            attributeFilter: ['src'],
           });
 
           // this.video.addEventListener('play', this.onPlayEvent);
@@ -33,7 +29,7 @@ export class VideoEventListener extends EventTarget {
           // this.video.addEventListener('timeupdate', this.onTimeupdateEvent);
           // this.video.addEventListener('durationchange', this.onDurationChangeEvent);
 
-          console.log('inititalize video completed');
+          // console.log('inititalize video completed');
 
           this.dispatchEvent(new Event('ready'));
         } catch (e) {
@@ -41,7 +37,7 @@ export class VideoEventListener extends EventTarget {
         }
       }
     ).catch((e) => {
-      console.error(e);
+      console.error('waitToVideo failed', e);
       throw Error(e);
     });
   }
@@ -94,12 +90,42 @@ export class VideoEventListener extends EventTarget {
 
   onMutationCallback: MutationCallback = (mutations) => {
     for (const mutation of mutations) {
-      console.log(
-        'VideoEventListener.onMutationCallback():',
-        mutation.attributeName,
-        mutation.oldValue,
-        mutation.attributeName ? mutation.target[mutation.attributeName as keyof typeof mutation.target] : undefined
-      );
+      const isEmptyTargetSrc = !(mutation.target as HTMLVideoElement).src?.length;
+
+      const isStartPlay = [
+        mutation.attributeName === 'src',
+        mutation.oldValue === null,
+        !isEmptyTargetSrc
+      ];
+
+      const isFinishPlay = [
+        mutation.attributeName === 'src',
+        !!mutation.oldValue?.length,
+        isEmptyTargetSrc
+      ];
+
+      if (isStartPlay.every(Boolean)) {
+        const ev = new Event('playing');
+
+        // console.log('VideoEventListener: emit playing event', ev);
+
+        this.dispatchEvent(ev);
+
+        continue; // TODO: REMOVE?
+      }
+
+      if (isFinishPlay.every(Boolean)) {
+        const ev = new Event('finished');
+
+        // console.log('VideoEventListener: emit finished event', ev);
+
+        this.dispatchEvent(ev);
+
+        continue; // TODO: REMOVE?
+      }
+
+      console.warn('VideoEventListener.onMutationCallback():');
+      console.log('mutation:', mutation);
     }
   }
 
@@ -107,14 +133,4 @@ export class VideoEventListener extends EventTarget {
   // onPauseEvent = (...args: unknown[]) => { console.log('VideoEventListener pause event', args) }
   // onDurationChangeEvent = (...args: unknown[]) => { console.log('VideoEventListener timeupdate event', args) }
   // onTimeupdateEvent = (...args: unknown[]) => { console.log('VideoEventListener durationchange event', args) }
-
-  check = () => { }
-
-  doSomething() {
-    this.dispatchEvent(new Event('something'));
-  }
-
-  render = () => {
-
-  }
 }

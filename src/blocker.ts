@@ -64,7 +64,7 @@ export class SponsorBlock {
     this.observer.observe(this.slider, {
       childList: true,
     });
-    console.log('observe slider listen');
+    // console.log('observe slider listen');
   }
 
   loadSegments = async () => {

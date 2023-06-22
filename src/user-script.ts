@@ -12,7 +12,6 @@ const getVideoId = () => {
   return videoID;
 }
 
-
 const fetchSegments = async () => {
   const videoID = getVideoId();
 
@@ -56,23 +55,49 @@ const fetchSegments = async () => {
   return result.segments;
 }
 
+const getSegments = async () => {
+  const segments = await fetchSegments();
+
+  if (!segments?.length) {
+    throw Error('segments not found');
+  }
+
+  return segments;
+}
+
 export const run = () => {
-  const video = new VideoEventListener();
+  const player = new VideoEventListener();
 
-  video.addEventListener('ready', async (e) => {
-    console.log('Event VideoEventListener ready');
+  player.addEventListener('error', (e) => {
+    console.error('VideoEventListener emit error', e);
+  });
 
-    const segments = await fetchSegments();
-
-    if (!segments) {
-      throw Error('segments not found');
+  player.addEventListener('ready', async (e) => {
+    if (!player.video) {
+      throw Error('video tag required');
     }
 
     const slider = new SliderComponent({
-      segments,
-      video: video.video as HTMLVideoElement,
+      video: player.video,
+    });
+
+    player.addEventListener('playing', async () => {
+      const videoID = getVideoId();
+
+      console.log('watch video', videoID);
+
+      const segments = await getSegments();
+
+      slider.rebuild(segments);
+    });
+
+    player.addEventListener('finished', () => {
+      const videoID = getVideoId();
+      // console.log('video has finished', slider);
+      slider.unmount();
+      console.log('close video', videoID);
     });
 
     slider.mount();
-  })
+  });
 };
