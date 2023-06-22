@@ -24,11 +24,6 @@ export class VideoEventListener extends EventTarget {
             attributeFilter: ['src'],
           });
 
-          // this.video.addEventListener('play', this.onPlayEvent);
-          // this.video.addEventListener('pause', this.onPauseEvent);
-          // this.video.addEventListener('timeupdate', this.onTimeupdateEvent);
-          // this.video.addEventListener('durationchange', this.onDurationChangeEvent);
-
           // console.log('inititalize video completed');
 
           this.dispatchEvent(new Event('ready'));
@@ -128,9 +123,4 @@ export class VideoEventListener extends EventTarget {
       console.log('mutation:', mutation);
     }
   }
-
-  // onPlayEvent = (...args: unknown[]) => { console.log('VideoEventListener play event', args) }
-  // onPauseEvent = (...args: unknown[]) => { console.log('VideoEventListener pause event', args) }
-  // onDurationChangeEvent = (...args: unknown[]) => { console.log('VideoEventListener timeupdate event', args) }
-  // onTimeupdateEvent = (...args: unknown[]) => { console.log('VideoEventListener durationchange event', args) }
 }

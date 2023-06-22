@@ -4,6 +4,7 @@ import { VideoEventListener } from './video-event-listener';
 import { SegmentRecord } from './sponsorblock-types';
 import { SPONSOR_BLOCK_API } from './constants';
 import { SliderComponent } from './slider-event-listener';
+import { SponsorblockSkipper } from './sponsorblock-skipper';
 
 const getVideoId = () => {
   const newURL = new URL(location.hash.substring(1), location.href);
@@ -73,13 +74,17 @@ export const run = () => {
   });
 
   player.addEventListener('ready', async (e) => {
-    if (!player.video) {
+    const video = player.video;
+
+    if (!video) {
       throw Error('video tag required');
     }
 
-    const slider = new SliderComponent({
-      video: player.video,
-    });
+    const slider = new SliderComponent({ video });
+
+    const sponsorblock = new SponsorblockSkipper(video);
+
+    console.log('sponsorblock instance', sponsorblock);
 
     player.addEventListener('playing', async () => {
       const videoID = getVideoId();
