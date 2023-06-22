@@ -1,7 +1,7 @@
 import { waitForChildAdd } from './utils';
 
 import './adblock.js';
-import './sponsorblock.js';
+import './sponsorblock.ts';
 import './ui.js';
 
 // This IIFE is to keep the video element fill the entire window so that screensaver doesn't kick in.

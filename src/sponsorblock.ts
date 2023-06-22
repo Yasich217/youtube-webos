@@ -1,6 +1,8 @@
-import * as sha256 from 'tiny-sha256';
+// @ts-ignore
+import sha256 from 'tiny-sha256';
 import { configRead } from './config';
 import { showNotification } from './ui';
+import { CustomWatcher } from './custom-watcher';
 
 // Copied from https://github.com/ajayyy/SponsorBlock/blob/9392d16617d2d48abb6125c00e2ff6042cb7bebe/src/config.ts#L179-L233
 const barTypes = {
@@ -38,26 +40,38 @@ const barTypes = {
 
 const sponsorblockAPI = 'https://sponsorblock.inf.re/api';
 
+type TProcedure = () => void;
+
+type TSegment = {
+  segment: [start: number, end: number]
+  category: string;
+}
+
 class SponsorBlockHandler {
-  video = null;
+  video: HTMLVideoElement | null = null;
   active = true;
 
-  attachVideoTimeout = null;
-  nextSkipTimeout = null;
-  sliderInterval = null;
+  attachVideoTimeout: number | undefined = undefined;
+  nextSkipTimeout: number | undefined = undefined;
+  sliderInterval: number | undefined = undefined;
 
-  observer = null;
-  scheduleSkipHandler = null;
-  durationChangeHandler = null;
-  segments = null;
-  skippableCategories = [];
+  observer: MutationObserver | null = null;
+  scheduleSkipHandler: TProcedure | null = null;
+  durationChangeHandler: TProcedure | null = null;
+  segments: TSegment[] = [];
+  skippableCategories: string[] = [];
+  videoID: string;
 
-  constructor(videoID) {
+  segmentsoverlay: HTMLDivElement | null = null;
+  slider: Element | null = null;
+  prevSlider: Element | null = null;
+
+  constructor(videoID: string) {
     this.videoID = videoID;
   }
 
   async init() {
-    const videoHash = sha256(this.videoID).substring(0, 4);
+    const videoHash = sha256(this.videoID)?.substring(0, 4);
     const categories = [
       'sponsor',
       'intro',
@@ -66,6 +80,8 @@ class SponsorBlockHandler {
       'selfpromo',
       'music_offtopic'
     ];
+
+    console.info('Initialize sponsorblock', videoHash);
     const resp = await fetch(
       `${sponsorblockAPI}/skipSegments/${videoHash}?categories=${encodeURIComponent(
         JSON.stringify(categories)
@@ -73,7 +89,7 @@ class SponsorBlockHandler {
     );
     const results = await resp.json();
 
-    const result = results.find((v) => v.videoID === this.videoID);
+    const result = results.find((v: { videoID: string }) => v.videoID === this.videoID);
     console.info(this.videoID, 'Got it:', result);
 
     if (!result || !result.segments || !result.segments.length) {
@@ -116,21 +132,30 @@ class SponsorBlockHandler {
 
   attachVideo() {
     clearTimeout(this.attachVideoTimeout);
-    this.attachVideoTimeout = null;
+    this.attachVideoTimeout = undefined;
 
     this.video = document.querySelector('video');
     if (!this.video) {
       console.info(this.videoID, 'No video yet...');
-      this.attachVideoTimeout = setTimeout(() => this.attachVideo(), 100);
+      this.attachVideoTimeout = setTimeout(() => this.attachVideo(), 100) as unknown as number;
       return;
     }
 
     console.info(this.videoID, 'Video found, binding...');
 
-    this.video.addEventListener('play', this.scheduleSkipHandler);
-    this.video.addEventListener('pause', this.scheduleSkipHandler);
-    this.video.addEventListener('timeupdate', this.scheduleSkipHandler);
-    this.video.addEventListener('durationchange', this.durationChangeHandler);
+    if (this.scheduleSkipHandler) {
+      this.video.addEventListener('play', this.scheduleSkipHandler);
+      this.video.addEventListener('pause', this.scheduleSkipHandler);
+      this.video.addEventListener('timeupdate', this.scheduleSkipHandler);
+    } else {
+      console.warn('Event handlers not defined for listen');
+    }
+
+    if (this.durationChangeHandler) {
+      this.video.addEventListener('durationchange', this.durationChangeHandler);
+    } else {
+      console.warn('Event durationchange handler not defined for listen');
+    }
   }
 
   buildOverlay() {
@@ -146,10 +171,12 @@ class SponsorBlockHandler {
 
     const videoDuration = this.video.duration;
 
-    this.segmentsoverlay = document.createElement('div');
+    const segmentsoverlay = document.createElement('div');
+
+    this.segmentsoverlay = segmentsoverlay;
     this.segments.forEach((segment) => {
       const [start, end] = segment.segment;
-      const barType = barTypes[segment.category] || {
+      const barType = barTypes[segment.category as keyof typeof barTypes] || {
         color: 'blue',
         opacity: 0.7
       };
@@ -159,18 +186,23 @@ class SponsorBlockHandler {
       elm.classList.add('ytlr-progress-bar__played');
       elm.style['background'] = barType.color;
       elm.style['opacity'] = barType.opacity;
-      elm.style['-webkit-transform'] = transform;
+      elm.style.webkitTransform = transform;
       console.info('Generated element', elm, 'from', segment, transform);
-      this.segmentsoverlay.appendChild(elm);
+      segmentsoverlay.appendChild(elm);
     });
 
     this.observer = new MutationObserver((mutations) => {
+      // console.warn('mutations', mutations);
       mutations.forEach((m) => {
         if (m.removedNodes) {
           for (const node of m.removedNodes) {
             if (node === this.segmentsoverlay) {
               console.info('bringing back segments overlay');
-              this.slider.appendChild(this.segmentsoverlay);
+              if (this.slider) {
+                this.slider.appendChild(this.segmentsoverlay);
+              } else {
+                console.warn('slider not defined, skip segment overlay adding');
+              }
             }
           }
         }
@@ -181,33 +213,63 @@ class SponsorBlockHandler {
       const sliderWithMarkers = document.querySelector('.ytlr-progress-bar__slider-base');
       const sliderWithoutMarkers = document.querySelector('.ytlr-progress-bar__slider');
 
+      console.warn('sliders', sliderWithMarkers, sliderWithoutMarkers);
+
+      if (this.prevSlider) {
+        if (this.slider !== this.prevSlider) {
+          console.log('this.slider !== this.prevSlider', 'DISCONNECT');
+          this.observer?.disconnect();
+        }
+      }
+
       this.slider = sliderWithoutMarkers ?? sliderWithMarkers;
+      this.prevSlider = this.slider;
       if (this.slider) {
         clearInterval(this.sliderInterval);
-        this.sliderInterval = null;
-        this.observer.observe(this.slider, {
-          childList: true
-        });
+        this.sliderInterval = undefined;
+        if (this.observer) {
+          this.observer.observe(this.slider, {
+            childList: true,
+          });
+        } else {
+          console.warn('observer not defined');
+        }
 
         if (sliderWithMarkers) {
-          this.segmentsoverlay.style.marginTop = '-1.19em';
+          console.info('Apply margin for chapters slider');
+
+          if (this.segmentsoverlay) {
+            this.segmentsoverlay.style.marginTop = '-1.19em';
+          } else {
+            console.warn('segmentsoverlay not defined for apply margin');
+          }
         }
-        this.slider.appendChild(this.segmentsoverlay);
+
+        if (this.segmentsoverlay) {
+          this.slider.appendChild(this.segmentsoverlay);
+        } else {
+          console.warn('segmentsoverlay not defined for slider append');
+        }
       }
-    }, 500);
+    }, 500) as unknown as number;
   }
 
   scheduleSkip() {
     clearTimeout(this.nextSkipTimeout);
-    this.nextSkipTimeout = null;
+    this.nextSkipTimeout = undefined;
 
     if (!this.active) {
       console.info(this.videoID, 'No longer active, ignoring...');
       return;
     }
 
+    if (!this.video) {
+      console.warn('video entity not defined, return');
+      return;
+    }
+
     if (this.video.paused) {
-      console.info(this.videoID, 'Currently paused, ignoring...');
+      console.info(this.videoID, 'scheduleSkip: Currently paused, ignoring...');
       return;
     }
 
@@ -216,7 +278,7 @@ class SponsorBlockHandler {
     // and, in worst case, perform a skip at negative interval (immediately)...
     const nextSegments = this.segments.filter(
       (seg) =>
-        seg.segment[0] > this.video.currentTime - 0.3 &&
+        this.video && seg.segment[0] > this.video.currentTime - 0.3 &&
         seg.segment[1] > this.video.currentTime - 0.3
     );
     nextSegments.sort((s1, s2) => s1.segment[0] - s2.segment[0]);
@@ -228,17 +290,17 @@ class SponsorBlockHandler {
 
     const [segment] = nextSegments;
     const [start, end] = segment.segment;
-    console.info(
-      this.videoID,
-      'Scheduling skip of',
-      segment,
-      'in',
-      start - this.video.currentTime
-    );
+    // console.info(
+    //   this.videoID,
+    //   'Scheduling skip of',
+    //   segment,
+    //   'in',
+    //   start - this.video.currentTime
+    // );
 
     this.nextSkipTimeout = setTimeout(() => {
-      if (this.video.paused) {
-        console.info(this.videoID, 'Currently paused, ignoring...');
+      if (this.video?.paused) {
+        console.info(this.videoID, 'nextSkipTimeout: Currently paused, ignoring...');
         return;
       }
       if (!this.skippableCategories.includes(segment.category)) {
@@ -251,12 +313,17 @@ class SponsorBlockHandler {
         return;
       }
 
-      const skipName = barTypes[segment.category]?.name || segment.category;
+      const skipName = barTypes[segment.category as keyof typeof barTypes]?.name || segment.category;
       console.info(this.videoID, 'Skipping', segment);
       showNotification(`Skipping ${skipName}`);
-      this.video.currentTime = end;
+
+      if (this.video) {
+        this.video.currentTime = end;
+      } else {
+        console.warn('skipping failed when video is not defined');
+      }
       this.scheduleSkip();
-    }, (start - this.video.currentTime) * 1000);
+    }, (start - this.video.currentTime) * 1000) as unknown as number;
   }
 
   destroy() {
@@ -266,17 +333,17 @@ class SponsorBlockHandler {
 
     if (this.nextSkipTimeout) {
       clearTimeout(this.nextSkipTimeout);
-      this.nextSkipTimeout = null;
+      this.nextSkipTimeout = undefined;
     }
 
     if (this.attachVideoTimeout) {
       clearTimeout(this.attachVideoTimeout);
-      this.attachVideoTimeout = null;
+      this.attachVideoTimeout = undefined;
     }
 
     if (this.sliderInterval) {
       clearInterval(this.sliderInterval);
-      this.sliderInterval = null;
+      this.sliderInterval = undefined;
     }
 
     if (this.observer) {
@@ -290,13 +357,22 @@ class SponsorBlockHandler {
     }
 
     if (this.video) {
-      this.video.removeEventListener('play', this.scheduleSkipHandler);
-      this.video.removeEventListener('pause', this.scheduleSkipHandler);
-      this.video.removeEventListener('timeupdate', this.scheduleSkipHandler);
-      this.video.removeEventListener(
-        'durationchange',
-        this.durationChangeHandler
-      );
+      if (this.scheduleSkipHandler) {
+        this.video.removeEventListener('play', this.scheduleSkipHandler);
+        this.video.removeEventListener('pause', this.scheduleSkipHandler);
+        this.video.removeEventListener('timeupdate', this.scheduleSkipHandler);
+      } else {
+        console.warn('Event handlers not defined for remove listen');
+      }
+
+      if (this.durationChangeHandler) {
+        this.video.removeEventListener(
+          'durationchange',
+          this.durationChangeHandler
+        );
+      } else {
+        console.warn('Event durationchange handler not defined for remove listen');
+      }
     }
   }
 }
@@ -307,38 +383,43 @@ class SponsorBlockHandler {
 // SponsorBlockHandler initializations... This has been noticed on Chromium 38.
 // This either reveals some bug in chromium/webpack/babel scope handling, or
 // shows my lack of understanding of javascript. (or both)
-window.sponsorblock = null;
+(window as any).sponsorblock = null;
 
 window.addEventListener(
   'hashchange',
   () => {
+    return;
+
     const newURL = new URL(location.hash.substring(1), location.href);
     const videoID = newURL.searchParams.get('v');
+
+    const sponsorblockInstance = (window as any).sponsorblock;
+
     const needsReload =
       videoID &&
-      (!window.sponsorblock || window.sponsorblock.videoID != videoID);
+      (!sponsorblockInstance || sponsorblockInstance.videoID != videoID);
 
     console.info(
       'hashchange',
       videoID,
-      window.sponsorblock,
-      window.sponsorblock ? window.sponsorblock.videoID : null,
+      sponsorblockInstance,
+      sponsorblockInstance ? sponsorblockInstance.videoID : null,
       needsReload
     );
 
     if (needsReload) {
-      if (window.sponsorblock) {
+      if (sponsorblockInstance) {
         try {
-          window.sponsorblock.destroy();
+          sponsorblockInstance.destroy();
         } catch (err) {
           console.warn('window.sponsorblock.destroy() failed!', err);
         }
-        window.sponsorblock = null;
+        (window as any).sponsorblock = null;
       }
 
       if (configRead('enableSponsorBlock')) {
-        window.sponsorblock = new SponsorBlockHandler(videoID);
-        window.sponsorblock.init();
+        (window as any).sponsorblock = new SponsorBlockHandler(videoID);
+        (window as any).sponsorblock.init();
       } else {
         console.info('SponsorBlock disabled, not loading');
       }
@@ -346,3 +427,10 @@ window.addEventListener(
   },
   false
 );
+
+
+!(window as any).customWatcher && (
+  (window as any).customWatcher = new CustomWatcher()
+);
+
+console.log('Create CustomWatcher', (window as any).customWatcher);

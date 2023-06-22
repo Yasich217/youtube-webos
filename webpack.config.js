@@ -17,28 +17,36 @@ module.exports = (env) => [
       userScript: './src/userScript.js'
     },
     output: {
-      path: path.resolve(__dirname, './dist'),
+      path: '/home/yasich217/Documents/github/YouTubeTV-adfree/renderers/main',
     },
     resolve: {
       extensions: ['.ts', '.js']
     },
     module: {
-      // rules: [
-      //   {
-      //     test: /\.m?js$/,
-      //     loader: 'babel-loader',
-      //     exclude: [
-      //       // Some module should not be transpiled by Babel
-      //       // See https://github.com/zloirock/core-js/issues/743#issuecomment-572074215
-      //       // \\ for Windows, / for macOS and Linux
-      //       /node_modules[\\/]core-js/,
-      //       /node_modules[\\/]webpack[\\/]buildin/
-      //     ],
-      //     options: {
-      //       cacheDirectory: true
-      //     }
-      //   }
-      // ]
+      rules: [
+        // {
+        //   test: /\.m?js$/,
+        //   loader: 'babel-loader',
+        //   exclude: [
+        //     // Some module should not be transpiled by Babel
+        //     // See https://github.com/zloirock/core-js/issues/743#issuecomment-572074215
+        //     // \\ for Windows, / for macOS and Linux
+        //     /node_modules[\\/]core-js/,
+        //     /node_modules[\\/]webpack[\\/]buildin/
+        //   ],
+        //   options: {
+        //     cacheDirectory: true
+        //   }
+        // }
+        {
+          test: /\.tsx?$/,
+          loader: 'ts-loader',
+          options: {
+            transpileOnly: true,
+          },
+          exclude: /dist/,
+        },
+      ]
     },
   }
 ];
