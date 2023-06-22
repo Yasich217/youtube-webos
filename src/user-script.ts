@@ -93,7 +93,6 @@ export const run = () => {
 
     player.addEventListener('finished', () => {
       const videoID = getVideoId();
-      // console.log('video has finished', slider);
       slider.unmount();
       console.log('close video', videoID);
     });

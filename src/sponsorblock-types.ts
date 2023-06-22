@@ -1,10 +1,12 @@
+import { BAR_TYPES } from "./constants"
+
 export interface SegmentRecord {
   videoID: string
   segments: Segment[]
 }
 
 export interface Segment {
-  category: string
+  category: keyof typeof BAR_TYPES
   actionType: string
   segment: number[]
   UUID: string

@@ -1,3 +1,4 @@
+import { BAR_TYPES } from "./constants";
 import { Segment } from "./sponsorblock-types";
 
 const enum SliderType {
@@ -189,7 +190,13 @@ export class SliderComponent extends EventTarget {
     this.segments.forEach((segment) => {
       const [start, end] = segment.segment;
 
-      const barType = {
+      const barTypeByMap = BAR_TYPES[segment.category];
+
+      if (!barTypeByMap) {
+        console.warn('segment category not mapped', segment);
+      }
+
+      const barType = barTypeByMap ?? {
         color: 'blue',
         opacity: 0.7
       };
