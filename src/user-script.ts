@@ -6,7 +6,7 @@ import { SPONSOR_BLOCK_API } from './constants';
 import { SliderComponent } from './slider-event-listener';
 import { SponsorblockSkipper } from './sponsorblock-skipper';
 
-const getVideoId = () => {
+export const getVideoId = () => {
   const newURL = new URL(location.hash.substring(1), location.href);
   const videoID = newURL.searchParams.get('v');
 
@@ -82,7 +82,7 @@ export const run = () => {
 
     const slider = new SliderComponent({ video });
 
-    const sponsorblock = new SponsorblockSkipper(video);
+    const sponsorblock = new SponsorblockSkipper({ video });
 
     console.log('sponsorblock instance', sponsorblock);
 
@@ -93,11 +93,14 @@ export const run = () => {
 
       const segments = await getSegments();
 
+      sponsorblock.setSegments(segments);
+
       slider.rebuild(segments);
     });
 
     player.addEventListener('finished', () => {
       const videoID = getVideoId();
+      sponsorblock.setSegments([]);
       slider.unmount();
       console.log('close video', videoID);
     });
