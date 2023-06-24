@@ -1,5 +1,5 @@
-import { BAR_TYPES } from "./constants";
-import { Segment } from "./sponsorblock-types";
+import { BAR_TYPES } from "../constants";
+import { Segment } from "../sponsorblock-types";
 
 const enum SliderType {
   Chapters = 'chapters',

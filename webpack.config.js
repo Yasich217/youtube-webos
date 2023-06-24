@@ -37,7 +37,7 @@ module.exports = (env) => [
         //   options: {
         //     cacheDirectory: true
         //   }
-        // }
+        // },
         {
           test: /\.tsx?$/,
           loader: 'ts-loader',

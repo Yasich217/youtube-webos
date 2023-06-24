@@ -1,5 +1,5 @@
 import { waitForChildAdd } from './utils';
-import { run } from './user-script';
+import { run } from './sponsorblock-module';
 
 import './adblock.js';
 // import './sponsorblock.ts';

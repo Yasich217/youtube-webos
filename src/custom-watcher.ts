@@ -1,5 +1,4 @@
 import { SponsorBlock } from "./blocker";
-import { VideoEventListener } from "./video-event-listener";
 
 enum PageMode {
   Watch = 'watch',
@@ -42,9 +41,6 @@ export class CustomWatcher {
     //   this.mode = PageMode.Watch;
     //   this.initializeForWatch();
     // }
-
-    const instance = new VideoEventListener();
-    console.log('VideoEventListener instance', instance);
   }
 
   observeChangeMode = () => {

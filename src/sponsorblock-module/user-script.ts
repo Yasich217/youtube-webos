@@ -1,10 +1,10 @@
 // @ts-ignore
 import sha256 from 'tiny-sha256';
 import { VideoEventListener } from './video-event-listener';
-import { SegmentRecord } from './sponsorblock-types';
-import { SPONSOR_BLOCK_API } from './constants';
+import { SegmentRecord } from '../sponsorblock-types';
+import { SPONSOR_BLOCK_API } from '../constants';
 import { SliderComponent } from './slider-event-listener';
-import { SponsorblockSkipper } from './sponsorblock-skipper';
+import { SponsorblockSkipper } from './skipper';
 
 export const getVideoId = () => {
   const newURL = new URL(location.hash.substring(1), location.href);
