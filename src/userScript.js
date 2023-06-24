@@ -13,11 +13,12 @@ document.addEventListener(
 );
 
 import './adblock.js';
-import './sponsorblock.js';
+import { run } from './sponsorblock-module';
 import './ui.js';
 
 // This IIFE is to keep the video element fill the entire window so that screensaver doesn't kick in.
 (async () => {
+  run();
   /** @type {HTMLVideoElement} */
   const video = await waitForChildAdd(
     document.body,
