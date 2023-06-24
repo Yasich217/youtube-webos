@@ -1,6 +1,6 @@
 // @ts-ignore
 import sha256 from 'tiny-sha256';
-import { Segment, SegmentRecord } from './sponsorblock-types';
+import { Segment, SegmentRecord } from './sponsorblock-module/types';
 
 export class SponsorBlock {
   videoID: string;

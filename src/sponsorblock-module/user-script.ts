@@ -1,8 +1,8 @@
 // @ts-ignore
 import sha256 from 'tiny-sha256';
 import { VideoEventListener } from './video-event-listener';
-import { SegmentRecord } from '../sponsorblock-types';
-import { SPONSOR_BLOCK_API } from '../constants';
+import { SegmentRecord } from './types';
+import { SPONSOR_BLOCK_API } from './constants';
 import { SliderComponent } from './slider-event-listener';
 import { SponsorblockSkipper } from './skipper';
 
