@@ -25,6 +25,7 @@
   "homepage": "https://github.com/webosbrew/youtube-webos#readme",
   "dependencies": {
     "@babel/runtime": "^7.16.7",
+    "@ungap/event-target": "^0.2.4",
     "core-js-pure": "^3.20.2",
     "regenerator-runtime": "^0.13.9",
     "tiny-sha256": "^1.0.2",
@@ -34,7 +35,7 @@
     "@babel/core": "^7.16.7",
     "@babel/plugin-transform-runtime": "^7.16.8",
     "@babel/preset-env": "^7.16.8",
-    "@webosose/ares-cli": "^2.2.0",
+    "@webosose/ares-cli": "^2.4.0",
     "babel-loader": "^8.2.3",
     "babel-plugin-polyfill-corejs3": "^0.5.0",
     "babel-plugin-polyfill-regenerator": "^0.3.0",

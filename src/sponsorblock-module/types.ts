@@ -1,17 +1,22 @@
-import { BAR_TYPES } from "../constants"
+import { BAR_TYPES } from './constants';
 
 export interface SegmentRecord {
-  videoID: string
-  segments: Segment[]
-}
+  segments: Segment[];
+  videoID: string;
+};
 
 export interface Segment {
-  category: keyof typeof BAR_TYPES
-  actionType: string
-  segment: number[]
-  UUID: string
-  videoDuration: number
-  locked: number
-  votes: number
-  description: string
-}
+  actionType: string;
+  category: keyof typeof BAR_TYPES;
+  description: string;
+  locked: number;
+  segment: number[];
+  UUID: string;
+  videoDuration: number;
+  votes: number;
+};
+
+export const enum SliderType {
+  Chapters = 'chapters',
+  Default = 'default'
+};

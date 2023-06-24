@@ -1,7 +1,7 @@
 import 'whatwg-fetch';
 import './domrect-polyfill';
 
-import { handleLaunch, waitForChildAdd } from './utils';
+import { handleLaunch } from './utils';
 
 document.addEventListener(
   'webOSRelaunch',
@@ -16,37 +16,47 @@ import './adblock.js';
 import { run } from './sponsorblock-module';
 import './ui.js';
 
-// This IIFE is to keep the video element fill the entire window so that screensaver doesn't kick in.
-(async () => {
+try {
   run();
-  /** @type {HTMLVideoElement} */
-  const video = await waitForChildAdd(
-    document.body,
-    (node) => node instanceof HTMLVideoElement
-  );
+} catch (e) {
+  console.error('error running sponsorblock module', e);
+}
 
-  const playerCtrlObs = new MutationObserver(() => {
-    const style = video.style;
+// This IIFE is to keep the video element fill the entire window so that screensaver doesn't kick in.
+// (async () => {
+//   try {
+//     run();
+//   } catch (e) {
+//     console.error('error running sponsorblock module', e);
+//   }
+//   /** @type {HTMLVideoElement} */
+//   const video = await waitForChildAdd(
+//     document.body,
+//     (node) => node instanceof HTMLVideoElement
+//   );
 
-    const targetWidth = `${window.innerWidth}px`;
-    const targetHeight = `${window.innerHeight}px`;
-    const targetLeft = '0px';
-    // YT uses a negative top to hide player when not in use. Don't know why but let's not affect it.
-    const targetTop =
-      style.top === `-${window.innerHeight}px` ? style.top : '0px';
+//   const playerCtrlObs = new MutationObserver(() => {
+//     const style = video.style;
 
-    /**
-     * Check to see if identical before assignment as some webOS versions will trigger a mutation
-     * mutation event even if the assignment effectively does nothing, leading to an infinite loop.
-     */
-    style.width !== targetWidth && (style.width = targetWidth);
-    style.height !== targetHeight && (style.height = targetHeight);
-    style.left !== targetLeft && (style.left = targetLeft);
-    style.top !== targetTop && (style.top = targetTop);
-  });
+//     const targetWidth = `${window.innerWidth}px`;
+//     const targetHeight = `${window.innerHeight}px`;
+//     const targetLeft = '0px';
+//     // YT uses a negative top to hide player when not in use. Don't know why but let's not affect it.
+//     const targetTop =
+//       style.top === `-${window.innerHeight}px` ? style.top : '0px';
 
-  playerCtrlObs.observe(video, {
-    attributes: true,
-    attributeFilter: ['style']
-  });
-})();
+//     /**
+//      * Check to see if identical before assignment as some webOS versions will trigger a mutation
+//      * mutation event even if the assignment effectively does nothing, leading to an infinite loop.
+//      */
+//     style.width !== targetWidth && (style.width = targetWidth);
+//     style.height !== targetHeight && (style.height = targetHeight);
+//     style.left !== targetLeft && (style.left = targetLeft);
+//     style.top !== targetTop && (style.top = targetTop);
+//   });
+
+//   playerCtrlObs.observe(video, {
+//     attributes: true,
+//     attributeFilter: ['style']
+//   });
+// })();

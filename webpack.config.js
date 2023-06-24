@@ -5,13 +5,13 @@ module.exports = (env) => [
   {
     mode: env.production ? 'production' : 'development',
 
-    target: 'browserslist',
+    target: 'web',
 
     // Builds with devtool support (development) contain very big eval chunks,
     // which seem to cause segfaults (at least) on nodeJS v0.12.2 used on webOS 3.x.
     // This feature makes sense only when using recent enough chrome-based
     // node inspector anyway.
-    devtool: 'source-map',
+    // devtool: 'source-map',
 
     entry: {
       index: './src/index.js',
