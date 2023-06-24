@@ -1,3 +1,5 @@
+import EventTarget from '@ungap/event-target';
+
 export class VideoEventListener extends EventTarget {
   video?: HTMLVideoElement;
   observer?: MutationObserver;
@@ -5,36 +7,42 @@ export class VideoEventListener extends EventTarget {
   constructor() {
     super();
 
-    this.waitToVideo().then(
-      () => {
-        try {
-          const video = document.querySelector('video');
+    try {
 
-          if (!video) {
-            throw new Error("video element not found");
+      this.waitToVideo().then(
+        () => {
+          try {
+            const video = document.querySelector('video');
+
+            if (!video) {
+              throw new Error("video element not found");
+            }
+
+            this.video = video;
+
+            this.observer = new MutationObserver(this.onMutationCallback);
+
+            this.observer.observe(this.video, {
+              attributes: true,
+              attributeOldValue: true,
+              attributeFilter: ['src'],
+            });
+
+            // console.log('inititalize video completed');
+
+            this.dispatchEvent(new Event('ready'));
+          } catch (e) {
+            console.error('inititalize video failed', e);
           }
-
-          this.video = video;
-
-          this.observer = new MutationObserver(this.onMutationCallback);
-
-          this.observer.observe(this.video, {
-            attributes: true,
-            attributeOldValue: true,
-            attributeFilter: ['src'],
-          });
-
-          // console.log('inititalize video completed');
-
-          this.dispatchEvent(new Event('ready'));
-        } catch (e) {
-          console.error('inititalize video failed', e);
         }
-      }
-    ).catch((e) => {
-      console.error('waitToVideo failed', e);
-      throw Error(e);
-    });
+      ).catch((e) => {
+        console.error('waitToVideo failed', e);
+        throw Error(e);
+      });
+
+    } catch (e) {
+      console.error('constr err', e);
+    }
   }
 
   waitToVideo = () => new Promise<void>((resolve, reject) => {

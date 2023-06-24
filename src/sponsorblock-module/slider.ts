@@ -1,16 +1,11 @@
-import { BAR_TYPES } from "./constants";
-import { Segment } from "./types";
-
-const enum SliderType {
-  Chapters = 'chapters',
-  Default = 'default'
-}
+import { BAR_TYPES } from './constants';
+import { Segment, SliderType } from './types';
 
 interface SliderComponentProps {
   video: HTMLVideoElement;
 }
 
-export class SliderComponent extends EventTarget {
+export class SliderComponent {
   slider: HTMLDivElement;
   type: SliderType;
   observer: MutationObserver;
@@ -20,8 +15,6 @@ export class SliderComponent extends EventTarget {
   progressbar: HTMLElement;
 
   constructor(props: SliderComponentProps) {
-    super();
-
     const params = this.createSliderOverlay();
 
     this.slider = params.slider;
@@ -32,7 +25,6 @@ export class SliderComponent extends EventTarget {
     this.progressbar = this.createProgressBar();
 
     this.segmentsoverlay = document.createElement('div');
-    this.updateSliderOverlay();
 
     this.observer = new MutationObserver(this.onMutationCallback);
   }
@@ -45,14 +37,6 @@ export class SliderComponent extends EventTarget {
     }
 
     return bar as HTMLElement;
-  }
-
-  updateSliderOverlay = () => {
-    if (this.type === SliderType.Chapters) {
-      this.segmentsoverlay.style.marginTop = '-1.18em';
-    } else {
-      this.segmentsoverlay.style.marginTop = '';
-    }
   }
 
   createSliderOverlay = () => {
@@ -146,6 +130,7 @@ export class SliderComponent extends EventTarget {
 
   unmount = () => {
     this.observer.disconnect();
+    this.slider.removeChild(this.segmentsoverlay);
     this.clearSegmentOverlay();
   }
 
@@ -170,8 +155,6 @@ export class SliderComponent extends EventTarget {
     this.mount();
 
     this.segments = segments;
-
-    this.updateSliderOverlay();
 
     this.clearSegmentOverlay();
     this.createSegmentOverlay();
@@ -204,9 +187,16 @@ export class SliderComponent extends EventTarget {
       const transform = `translateX(${(start / videoDuration) * 100.0}%) scaleX(${(end - start) / videoDuration})`;
 
       const elm = document.createElement('div');
-      elm.classList.add('ytlr-progress-bar__played');
-      elm.style['background'] = barType.color;
-      elm.style['opacity'] = barType.opacity.toString();
+
+      if (this.type === SliderType.Chapters) {
+        elm.classList.add('ytlr-multi-markers-player-bar-renderer__segment');
+        elm.style.position = 'absolute';
+      } else {
+        elm.classList.add('ytlr-progress-bar__played');
+      }
+
+      elm.style.background = barType.color;
+      elm.style.opacity = barType.opacity.toString();
       elm.style.webkitTransform = transform;
 
       // console.info('Generated element', elm);
