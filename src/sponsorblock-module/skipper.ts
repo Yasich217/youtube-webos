@@ -21,7 +21,7 @@ export class SponsorblockSkipper {
     const videoID = getVideoId();
 
     if (!videoID) {
-      throw Error('get videoID failed');
+      throw new Error('get videoID failed');
     }
 
     this.videoID = videoID;

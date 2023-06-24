@@ -2,7 +2,7 @@ import { showNotification } from '../ui';
 import { BAR_TYPES } from './constants';
 import { fetchSegments, getVideoId } from './utils';
 import { VideoEventListener } from './video-event-listener';
-import { SliderComponent } from './slider';
+import { SliderOverlay } from './slider';
 import { SponsorblockSkipper } from './skipper';
 import { Segment } from './types';
 
@@ -22,14 +22,9 @@ export const run = () => {
   };
 
   const onPlayerReady = async () => {
-    const video = player.video;
+    const video = player.video as HTMLVideoElement;
 
-    if (!video) {
-      throw Error('video tag required');
-    }
-
-    const slider = new SliderComponent({ video });
-
+    const slider = new SliderOverlay({ video });
     const sponsorblock = new SponsorblockSkipper({ video, onSkipSegment });
 
     const onPlayerStart = async () => {

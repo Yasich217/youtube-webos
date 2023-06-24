@@ -1,33 +1,35 @@
 import { BAR_TYPES } from './constants';
 import { Segment, SliderType } from './types';
 
-interface SliderComponentProps {
+interface SliderOverlayProps {
   video: HTMLVideoElement;
-}
+};
 
-export class SliderComponent {
+export class SliderOverlay {
+  observer: MutationObserver;
+  progressbar: HTMLElement;
+  segments: Segment[];
+  segmentsoverlay: HTMLDivElement;
   slider: HTMLDivElement;
   type: SliderType;
-  observer: MutationObserver;
   video: HTMLVideoElement;
-  segments: Segment[] = [];
-  segmentsoverlay: HTMLDivElement;
-  progressbar: HTMLElement;
 
-  constructor(props: SliderComponentProps) {
-    const params = this.createSliderOverlay();
-
-    this.slider = params.slider;
-    this.type = params.type;
-
-    this.video = props.video;
+  constructor({ video }: SliderOverlayProps) {
+    const { slider, type } = this.createSliderOverlay();
 
     this.progressbar = this.createProgressBar();
+
+    this.video = video;
+
+    this.slider = slider;
+    this.type = type;
+
+    this.segments = [];
 
     this.segmentsoverlay = document.createElement('div');
 
     this.observer = new MutationObserver(this.onMutationCallback);
-  }
+  };
 
   createProgressBar = () => {
     const bar = document.querySelector('.ytlr-progress-bar');
@@ -37,7 +39,7 @@ export class SliderComponent {
     }
 
     return bar as HTMLElement;
-  }
+  };
 
   createSliderOverlay = () => {
     const chaptersSlider = document.querySelector('.ytlr-progress-bar__slider-base');
@@ -46,35 +48,31 @@ export class SliderComponent {
     const slider = (chaptersSlider ?? defaultSlider) as HTMLDivElement | null;
 
     if (!slider) {
-      throw new Error('SliderComponent -> createSliderOverlay: slider not found');
+      throw new Error('Slider.createSliderOverlay: slider not found');
     }
 
     const type = chaptersSlider ? SliderType.Chapters : SliderType.Default;
 
     const result = { slider, type };
 
-    // console.log('createSliderOverlay', result);
-
     return result;
-  }
+  };
 
   onProgressBarEvent = (mutation: MutationRecord) => {
     const isProgressBarMutation = mutation.type === 'attributes' && mutation.attributeName === 'class';
-
-    // console.log('onProgressBarEvent mutation', mutation);
 
     if (!isProgressBarMutation) {
       throw Error('test if condition');
     }
 
-    const classList = (mutation.target as HTMLElement).classList;
+    const targetClassList = (mutation.target as HTMLElement).classList;
     const sliderClassList = this.slider.classList;
 
     /**
      * Если мы знаем о баре с главами, то слайдер у нас должен быть соответствующий.
      */
-    const isNotCorrectMarkerSlider = classList.contains('ytlr-progress-bar--has-multi-markers') && !sliderClassList.contains('ytlr-progress-bar__slider-base');
-    const isNotCorrectDefaultSlider = !classList.contains('ytlr-progress-bar--has-multi-markers') && !sliderClassList.contains('ytlr-progress-bar__slider');
+    const isNotCorrectMarkerSlider = targetClassList.contains('ytlr-progress-bar--has-multi-markers') && !sliderClassList.contains('ytlr-progress-bar__slider-base');
+    const isNotCorrectDefaultSlider = !targetClassList.contains('ytlr-progress-bar--has-multi-markers') && !sliderClassList.contains('ytlr-progress-bar__slider');
 
     if (isNotCorrectMarkerSlider || isNotCorrectDefaultSlider) {
       console.warn('Есть различия со слайдером, ререндер');
@@ -87,7 +85,7 @@ export class SliderComponent {
 
       return;
     }
-  }
+  };
 
   onMutationCallback: MutationCallback = (mutations) => {
     for (const mutation of mutations) {
@@ -106,7 +104,7 @@ export class SliderComponent {
         }
       }
     }
-  }
+  };
 
   mount = () => {
     this.observer.disconnect();
@@ -122,17 +120,16 @@ export class SliderComponent {
       attributeFilter: ['class'],
       attributeOldValue: true,
     });
-  }
+  };
 
   remount = () => {
     this.rebuild(this.segments, true);
-  }
+  };
 
   unmount = () => {
     this.observer.disconnect();
-    this.slider.removeChild(this.segmentsoverlay);
     this.clearSegmentOverlay();
-  }
+  };
 
   rebuild = (segments: Segment[], remount = false) => {
     if (!segments.length) {
@@ -147,10 +144,10 @@ export class SliderComponent {
       return;
     }
 
-    const params = this.createSliderOverlay();
+    const { slider, type } = this.createSliderOverlay();
 
-    this.slider = params.slider;
-    this.type = params.type;
+    this.slider = slider;
+    this.type = type;
 
     this.mount();
 
@@ -158,17 +155,24 @@ export class SliderComponent {
 
     this.clearSegmentOverlay();
     this.createSegmentOverlay();
-  }
+  };
 
   clearSegmentOverlay = () => {
-    // console.log('clearSegmentOverlay:', this.segmentsoverlay.children);
-
+    try {
+      this.slider.removeChild(this.segmentsoverlay);
+    } catch (e) {
+      console.warn('slider remove overlay error', e);
+    }
     Array.from(this.segmentsoverlay.children).forEach(child => child.remove());
-    this.segmentsoverlay.remove();
-  }
+    this.segmentsoverlay.remove(); // look up
+  };
 
   createSegmentOverlay = () => {
     const videoDuration = this.video.duration;
+
+    if (!videoDuration) {
+      console.warn('video duration incorrected', this.video.currentTime);
+    }
 
     this.segments.forEach((segment) => {
       const [start, end] = segment.segment;
@@ -181,7 +185,7 @@ export class SliderComponent {
 
       const barType = barTypeByMap ?? {
         color: 'blue',
-        opacity: 0.7
+        opacity: 0.7,
       };
 
       const transform = `translateX(${(start / videoDuration) * 100.0}%) scaleX(${(end - start) / videoDuration})`;
@@ -205,6 +209,5 @@ export class SliderComponent {
     });
 
     console.log('createSegmentOverlay segments', this.segments.length);
-    // console.log(this.segments, this.segmentsoverlay);
-  }
-}
+  };
+};
