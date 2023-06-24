@@ -47,7 +47,15 @@ module.exports = (env) => [
             { loader: 'style-loader' },
             { loader: 'css-loader', options: { esModule: false } }
           ]
-        }
+        },
+        {
+          test: /\.ts?$/,
+          loader: 'ts-loader',
+          options: {
+            transpileOnly: true,
+          },
+          exclude: /dist/,
+        },
       ]
     },
     plugins: [
