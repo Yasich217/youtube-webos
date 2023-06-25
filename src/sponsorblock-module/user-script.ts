@@ -5,6 +5,7 @@ import { VideoEventListener } from './video-event-listener';
 import { SliderOverlay } from './slider';
 import { SponsorblockSkipper } from './skipper';
 import { Segment } from './types';
+import { ControlsEventListener } from './controls-button';
 
 export const run = () => {
   const player = new VideoEventListener();
@@ -26,6 +27,10 @@ export const run = () => {
 
     const slider = new SliderOverlay({ video });
     const sponsorblock = new SponsorblockSkipper({ video, onSkipSegment });
+
+    const controls = new ControlsEventListener();
+
+    console.log('ControlsEventListener created instance', controls);
 
     const onPlayerStart = async () => {
       const videoID = getVideoId();
