@@ -44,7 +44,7 @@ export class SponsorblockSkipper {
       .sort(({ segment: [a] }, { segment: [b] }) => a - b);
 
     if (!nextSegments.length) {
-      console.info(this.videoID, 'No more segments', this.segments.length);
+      // console.info(this.videoID, 'No more segments', this.segments.length);
 
       return;
     }

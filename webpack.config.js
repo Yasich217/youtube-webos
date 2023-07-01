@@ -20,7 +20,7 @@ module.exports = (env) => [
       path: '/home/yasich217/Documents/github/YouTubeTV-adfree/renderers/main',
     },
     resolve: {
-      extensions: ['.ts', '.js']
+      extensions: ['.tsx', '.ts', '.js']
     },
     module: {
       rules: [
@@ -39,7 +39,7 @@ module.exports = (env) => [
         //   }
         // },
         {
-          test: /\.tsx?$/,
+          test: /\.(ts|tsx)?$/,
           loader: 'ts-loader',
           options: {
             transpileOnly: true,

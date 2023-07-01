@@ -98,7 +98,7 @@ export class SliderOverlay {
       if (mutation.removedNodes) {
         for (const node of mutation.removedNodes) {
           if (node === this.segmentsoverlay) {
-            console.info('remount overlay');
+            // console.info('remount overlay');
             this.mount();
           }
         }
@@ -208,6 +208,6 @@ export class SliderOverlay {
       this.segmentsoverlay.appendChild(elm);
     });
 
-    console.log('createSegmentOverlay segments', this.segments.length);
+    // console.log('createSegmentOverlay segments', this.segments.length);
   };
 };

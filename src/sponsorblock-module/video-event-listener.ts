@@ -1,4 +1,4 @@
-import EventTarget from '@ungap/event-target';
+// import EventTarget from '@ungap/event-target';
 
 export class VideoEventListener extends EventTarget {
   video?: HTMLVideoElement;
@@ -112,8 +112,8 @@ export class VideoEventListener extends EventTarget {
         continue; // TODO: REMOVE?
       }
 
-      console.warn('VideoEventListener.onMutationCallback():');
-      console.log('mutation:', mutation);
+      // console.warn('VideoEventListener.onMutationCallback():');
+      // console.log('mutation:', mutation);
     }
   }
 }

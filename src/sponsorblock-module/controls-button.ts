@@ -1,5 +1,6 @@
-import EventTarget from '@ungap/event-target';
+// import EventTarget from '@ungap/event-target';
 import { SettingButton, TransportControlsInstance, TransportControlsProps, TransportControlsState } from './component-types';
+import { render } from '../react-kit';
 
 export class ControlsEventListener extends EventTarget {
   container: HTMLElement;
@@ -7,10 +8,19 @@ export class ControlsEventListener extends EventTarget {
   observers: {
     controls: MutationObserver;
     container: MutationObserver;
+    overlay: {
+      container: MutationObserver;
+    };
   };
+
+  overlay: {
+    container?: HTMLElement;
+  }
 
   constructor() {
     super();
+
+    this.overlay = {};
 
     const container = document.querySelector(".ytlr-transport-controls-renderer");
 
@@ -22,7 +32,10 @@ export class ControlsEventListener extends EventTarget {
 
     this.observers = {
       controls: new MutationObserver(this.onControlsMutationCallback),
-      container: new MutationObserver(this.onContainerMutationCallback)
+      container: new MutationObserver(this.onContainerMutationCallback),
+      overlay: {
+        container: new MutationObserver(this.onOverlayContainerMutationCallback),
+      }
     };
 
     this.observers.container.observe(this.container, {
@@ -67,8 +80,8 @@ export class ControlsEventListener extends EventTarget {
         const allBtns = (mutation.target as HTMLElement & TransportControlsInstance).__instance.props.data.buttons;
         const btns = (mutation.target as HTMLElement & TransportControlsInstance).__instance.state.primaryButtons;
 
-        console.log('allBtns', allBtns);
-        console.log('btns', btns);
+        // console.log('allBtns', allBtns);
+        // console.log('btns', btns);
 
         const sponsorblockButtonId = 'sponsorblockButton';
 
@@ -114,9 +127,9 @@ export class ControlsEventListener extends EventTarget {
         // this.observers.controls.disconnect();
       }
 
-      console.warn('onContainerMutationCallback.onMutationCallback():');
+      // console.warn('onContainerMutationCallback.onMutationCallback():');
       // console.log('mutation:', (mutation.target as any).__instance.props.data.buttons);
-      console.log('mutation:', mutation);
+      // console.log('mutation:', mutation);
 
       // const targetCloneElement = this.controls.firstChild?.childNodes[1];
 
@@ -138,6 +151,33 @@ export class ControlsEventListener extends EventTarget {
     for (const mutation of mutations) {
 
       // console.log('ControlsEventListener.onControlsMutationCallback(): mutation:', mutation.removedNodes, mutation.addedNodes);
+
+      if (mutation.removedNodes) {
+        for (const node of mutation.removedNodes) {
+          if (node === this.button) {
+            this.observers.controls.disconnect();
+            console.info('return button');
+
+            const node = this.container.children[0]?.querySelector('[aria-label="Channel"]')?.cloneNode(true) as HTMLElement;
+            node.ariaLabel = 'SponsorBlock';
+
+            this.button = node;
+            this.container.children[0].appendChild(this.button);
+
+            this.observers.controls.observe(this.container.children[0], {
+              childList: true,
+            });
+          }
+        }
+      }
+    }
+  };
+
+  onOverlayContainerMutationCallback: MutationCallback = (mutations) => {
+    // return;
+    for (const mutation of mutations) {
+
+      // console.log('ControlsEventListener.onOverlayContainerMutationCallback(): mutation:', mutation.removedNodes, mutation.addedNodes);
 
       if (mutation.removedNodes) {
         for (const node of mutation.removedNodes) {
