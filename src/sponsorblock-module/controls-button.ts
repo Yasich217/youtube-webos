@@ -8,19 +8,10 @@ export class ControlsEventListener extends EventTarget {
   observers: {
     controls: MutationObserver;
     container: MutationObserver;
-    overlay: {
-      container: MutationObserver;
-    };
   };
-
-  overlay: {
-    container?: HTMLElement;
-  }
 
   constructor() {
     super();
-
-    this.overlay = {};
 
     const container = document.querySelector(".ytlr-transport-controls-renderer");
 
@@ -32,10 +23,7 @@ export class ControlsEventListener extends EventTarget {
 
     this.observers = {
       controls: new MutationObserver(this.onControlsMutationCallback),
-      container: new MutationObserver(this.onContainerMutationCallback),
-      overlay: {
-        container: new MutationObserver(this.onOverlayContainerMutationCallback),
-      }
+      container: new MutationObserver(this.onContainerMutationCallback)
     };
 
     this.observers.container.observe(this.container, {
@@ -70,9 +58,9 @@ export class ControlsEventListener extends EventTarget {
         // this.button = node;
         // node && this.container.children[0]?.appendChild(node);
 
-        // this.observers.controls.observe(this.container.children[0], {
-        //   childList: true,
-        // });
+        this.observers.controls.observe(this.container.children[0], {
+          childList: true,
+        });
 
         // console.warn('add button and watch changes');
         // console.log((mutation.target as any).__instance);
@@ -80,12 +68,12 @@ export class ControlsEventListener extends EventTarget {
         const allBtns = (mutation.target as HTMLElement & TransportControlsInstance).__instance.props.data.buttons;
         const btns = (mutation.target as HTMLElement & TransportControlsInstance).__instance.state.primaryButtons;
 
-        // console.log('allBtns', allBtns);
-        // console.log('btns', btns);
+        console.log('allBtns', allBtns);
+        console.log('btns', btns);
 
         const sponsorblockButtonId = 'sponsorblockButton';
 
-        if (!btns.find(btn => btn.idomKey === sponsorblockButtonId)) {
+        if (btns && allBtns && !btns.find(btn => btn.idomKey === sponsorblockButtonId)) {
 
           const settingsButton = allBtns.find(e => e.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_PLAYBACK_SETTINGS') as SettingButton;
 
@@ -115,6 +103,12 @@ export class ControlsEventListener extends EventTarget {
                 },
               }
             });
+
+            console.log('ControlsEventListener.onContainerMutationCallback: push button', btns);
+
+            return;
+          } else {
+            console.warn('ControlsEventListener.onContainerMutationCallback: settingsButton button not found', btns);
           }
         }
       }
@@ -122,13 +116,13 @@ export class ControlsEventListener extends EventTarget {
       /** Значит панель скрывается. */
       if (targetElement.classList.contains('zylon-hidden') && !mutation.oldValue?.includes('zylon-hidden')) {
         // document.removeEventListener('keydown', this.cb);
-        // console.warn('remove button and disconnect');
-        // this.button && this.container.children[0]?.removeChild(this.button);
+        console.warn('remove button and disconnect');
+        this.button && this.container.children[0]?.removeChild(this.button);
         // this.observers.controls.disconnect();
       }
 
-      // console.warn('onContainerMutationCallback.onMutationCallback():');
-      // console.log('mutation:', (mutation.target as any).__instance.props.data.buttons);
+      console.warn('ControlsEventListener.onContainerMutationCallback.onMutationCallback():');
+      console.log('mutation:', mutation);
       // console.log('mutation:', mutation);
 
       // const targetCloneElement = this.controls.firstChild?.childNodes[1];
@@ -150,7 +144,7 @@ export class ControlsEventListener extends EventTarget {
     // return;
     for (const mutation of mutations) {
 
-      // console.log('ControlsEventListener.onControlsMutationCallback(): mutation:', mutation.removedNodes, mutation.addedNodes);
+      console.log('ControlsEventListener.onControlsMutationCallback(): mutation:', mutation.removedNodes, mutation.addedNodes);
 
       if (mutation.removedNodes) {
         for (const node of mutation.removedNodes) {
@@ -177,7 +171,7 @@ export class ControlsEventListener extends EventTarget {
     // return;
     for (const mutation of mutations) {
 
-      // console.log('ControlsEventListener.onOverlayContainerMutationCallback(): mutation:', mutation.removedNodes, mutation.addedNodes);
+      console.log('ControlsEventListener.onOverlayContainerMutationCallback(): mutation:', mutation.removedNodes, mutation.addedNodes);
 
       if (mutation.removedNodes) {
         for (const node of mutation.removedNodes) {

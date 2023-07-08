@@ -17,12 +17,14 @@ export class OverlayEventListener extends EventTarget {
     this.observer = new MutationObserver(this.onMutationCallback);
     this.container = new MutationObserver(this.onContainerMutationCallback);
 
-    this.observer.observe(this.overlay, {
-      attributes: true,
-      attributeFilter: ['class'],
-      attributeOldValue: true,
-      childList: true,
-    });
+    console.log('overlay instance', (this.overlay as any).__instance);
+
+    // this.observer.observe(this.overlay, {
+    //   attributes: true,
+    //   attributeFilter: ['class'],
+    //   attributeOldValue: true,
+    //   childList: true,
+    // });
   }
 
   onContainerMutationCallback: MutationCallback = (mutations) => {
