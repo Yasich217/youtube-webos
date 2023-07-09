@@ -2,38 +2,40 @@ import { showNotification } from '../ui';
 import { BAR_TYPES } from './constants';
 import { fetchSegments, getVideoId } from './utils';
 import { VideoEventListener } from './video-event-listener';
-import { SliderComponent } from './slider';
+import { SliderOverlay } from './slider';
 import { SponsorblockSkipper } from './skipper';
 import { Segment } from './types';
-
+import { ControlsEventListener } from './controls-button';
+import { OverlayEventListener } from './overlay-event-listener';
 
 export const run = () => {
   const player = new VideoEventListener();
 
-  player.addEventListener('error', (e) => {
-    console.error('VideoEventListener emit error', e);
-  });
+  const onSkipSegment = (segment: Segment) => {
+    let skipName = BAR_TYPES[segment.category]?.name as string | undefined;
 
-  player.addEventListener('ready', async (e) => {
-    const onSkipSegment = (segment: Segment) => {
-      let skipName = BAR_TYPES[segment.category]?.name as string | undefined;
+    if (!skipName) {
+      console.warn('segment category not found in bar types', segment);
 
-      if (skipName) {
-        skipName = segment.category;
-      }
-
-      showNotification(`Skipping ${skipName}`);
-    };
-
-    const video = player.video;
-
-    if (!video) {
-      throw Error('video tag required');
+      skipName = segment.category;
     }
 
-    const slider = new SliderComponent({ video });
+    showNotification(`Skipping ${skipName}`);
+  };
 
+  const onPlayerReady = async () => {
+    const video = player.video as HTMLVideoElement;
+
+    const slider = new SliderOverlay({ video });
     const sponsorblock = new SponsorblockSkipper({ video, onSkipSegment });
+
+    const controls = new ControlsEventListener();
+
+    console.log('ControlsEventListener created instance', controls);
+
+    const overlay = new OverlayEventListener();
+
+    console.log('OverlayEventListener created instance', overlay);
 
     const onPlayerStart = async () => {
       const videoID = getVideoId();
@@ -62,5 +64,10 @@ export const run = () => {
     player.addEventListener('finished', onPlayerClose);
 
     slider.mount();
+  };
+
+  player.addEventListener('ready', onPlayerReady);
+  player.addEventListener('error', (e) => {
+    console.error('VideoEventListener emited error', e);
   });
 };
