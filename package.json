@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack",
+    "for-electron": "npm run build && cd /home/yasich217/Documents/github/YouTubeTV-adfree && npm run install-dev",
     "package": "ares-package -n dist",
     "deploy": "node tools/deploy.mjs",
     "launch": "ares-launch youtube.leanback.v4",

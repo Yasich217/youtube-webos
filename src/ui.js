@@ -86,6 +86,6 @@ uiContainer
 
 export const showNotification = window.sendUiNotifyMessage
 
-setTimeout(() => {
-  showNotification('Press [ctrl+s] to open YTAF configuration screen');
-}, 2000);
+// setTimeout(() => {
+//   showNotification('Press [ctrl+s] to open YTAF configuration screen');
+// }, 2000);
