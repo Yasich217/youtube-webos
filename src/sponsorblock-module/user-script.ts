@@ -9,6 +9,8 @@ import { ControlsEventListener } from './controls-button';
 import { OverlayEventListener } from './overlay-event-listener';
 
 export const run = () => {
+  console.log('user-script.run(): RUNNING...');
+
   const player = new VideoEventListener();
 
   const onSkipSegment = (segment: Segment) => {
@@ -46,9 +48,15 @@ export const run = () => {
 
       console.log('watch video', videoID);
 
+      const startTime = performance.now();
+
       const segments = await fetchSegments(videoID);
 
-      sponsorblock.setSegments(segments);
+      const endTime = performance.now();
+
+      const loadTime = endTime - startTime;
+
+      sponsorblock.setSegments(segments, loadTime);
 
       slider.rebuild(segments);
     };
@@ -69,5 +77,10 @@ export const run = () => {
   player.addEventListener('ready', onPlayerReady);
   player.addEventListener('error', (e) => {
     console.error('VideoEventListener emited error', e);
+  });
+
+  window.addEventListener('hashchange', (event) => {
+    // https://www.youtube.com/tv?#/watch?v=pj0hHmMR_yQ
+    console.log('user-script.run(): on hashchange', new Date(), [event.oldURL, event.newURL], event);
   });
 };
