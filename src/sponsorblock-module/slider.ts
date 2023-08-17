@@ -75,9 +75,11 @@ export class SliderOverlay {
     const isNotCorrectDefaultSlider = !targetClassList.contains('ytlr-progress-bar--has-multi-markers') && !sliderClassList.contains('ytlr-progress-bar__slider');
 
     if (isNotCorrectMarkerSlider || isNotCorrectDefaultSlider) {
-      console.warn('Есть различия со слайдером, ререндер');
+      const isVideoDurationExist = typeof this.video.duration === 'number';
 
-      if (typeof this.video.duration === 'number') {
+      console.warn('Есть различия со слайдером, ререндер', isNotCorrectMarkerSlider, isNotCorrectDefaultSlider, isVideoDurationExist);
+
+      if (isVideoDurationExist) {
         this.remount();
       } else {
         console.warn('video player lost common props');

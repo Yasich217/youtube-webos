@@ -112,7 +112,7 @@ export class VideoEventListener extends EventTarget {
         continue; // TODO: REMOVE?
       }
 
-      // console.warn('VideoEventListener.onMutationCallback():');
+      console.warn('VideoEventListener.onMutationCallback():', mutation);
       // console.log('mutation:', mutation);
     }
   }

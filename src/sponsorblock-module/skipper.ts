@@ -12,11 +12,14 @@ export class SponsorblockSkipper {
   segments: Segment[] = [];
   video: HTMLVideoElement;
   videoID: string;
+  delta: number;
 
   constructor({ video, onSkipSegment }: SponsorblockSkipperProps) {
     this.handleSkipSegment = onSkipSegment;
 
     this.video = video;
+
+    this.delta = 0;
 
     const videoID = getVideoId();
 
@@ -29,22 +32,34 @@ export class SponsorblockSkipper {
     this.video.addEventListener('timeupdate', this.onTimeupdateEvent);
   }
 
-  setSegments = (segments: Segment[]) => {
+  setSegments = (segments: Segment[], delta = this.delta) => {
     this.segments = segments;
+    this.delta = delta;
+
+    /** Сбрасываем дельту, если ее не сбросили раньше? */
+    setTimeout(() => {
+      /** Вдруг уже установили с другим значением? */
+      if (this.delta === delta) {
+        this.delta = 0;
+      }
+    }, delta);
+
+    console.log('SponsorblockSkipper.setSegments() load time:', delta);
   }
 
   onTimeupdateEvent = (e: Event) => {
-    const gap = 0.5;
+    const factor = (this.delta / 1000);
+    const gap = 0.1;
     const currentTime = this.video.currentTime;
     // Sometimes timeupdate event (that calls scheduleSkip) gets fired right before
     // already scheduled skip routine below. Let's just look back a little bit
     // and, in worst case, perform a skip at negative interval (immediately)...
     const nextSegments = this.segments
-      .filter(({ segment: [start, end] }) => start > currentTime - gap && end > currentTime - gap)
+      .filter(({ segment: [start, end] }) => start > (currentTime - gap - factor) && end > currentTime - gap)
       .sort(({ segment: [a] }, { segment: [b] }) => a - b);
 
     if (!nextSegments.length) {
-      // console.info(this.videoID, 'No more segments', this.segments.length);
+      console.info('SponsorblockSkipper.onTimeupdateEvent():', this.videoID, 'No more segments', this.segments.length);
 
       return;
     }
@@ -55,7 +70,10 @@ export class SponsorblockSkipper {
     if (currentTime - gap <= start && currentTime + gap >= start) {
       this.video.currentTime = end;
 
-      console.info(this.videoID, 'Skipping', segment);
+      // Сбрасываем дельту после скипа.
+      this.delta = 0;
+
+      console.info('SponsorblockSkipper.onTimeupdateEvent():', this.videoID, 'Skipping', segment);
       this.handleSkipSegment(segment);
     }
   }

@@ -44,7 +44,7 @@ export class ControlsEventListener extends EventTarget {
   }
 
   cb = (e: any) => {
-    console.warn('keydown', e);
+    // console.warn('keydown', e);
   }
 
   onContainerMutationCallback: MutationCallback = (mutations) => {
@@ -68,8 +68,8 @@ export class ControlsEventListener extends EventTarget {
         const allBtns = (mutation.target as HTMLElement & TransportControlsInstance).__instance.props.data.buttons;
         const btns = (mutation.target as HTMLElement & TransportControlsInstance).__instance.state.primaryButtons;
 
-        console.log('allBtns', allBtns);
-        console.log('btns', btns);
+        // console.log('allBtns', allBtns);
+        // console.log('btns', btns);
 
         const sponsorblockButtonId = 'sponsorblockButton';
 
@@ -104,11 +104,11 @@ export class ControlsEventListener extends EventTarget {
               }
             });
 
-            console.log('ControlsEventListener.onContainerMutationCallback: push button', btns);
+            // console.log('ControlsEventListener.onContainerMutationCallback: push button', btns);
 
             return;
           } else {
-            console.warn('ControlsEventListener.onContainerMutationCallback: settingsButton button not found', btns);
+            // console.warn('ControlsEventListener.onContainerMutationCallback: settingsButton button not found', btns);
           }
         }
       }
@@ -116,13 +116,13 @@ export class ControlsEventListener extends EventTarget {
       /** Значит панель скрывается. */
       if (targetElement.classList.contains('zylon-hidden') && !mutation.oldValue?.includes('zylon-hidden')) {
         // document.removeEventListener('keydown', this.cb);
-        console.warn('remove button and disconnect');
+        // console.warn('remove button and disconnect');
         this.button && this.container.children[0]?.removeChild(this.button);
         // this.observers.controls.disconnect();
       }
 
-      console.warn('ControlsEventListener.onContainerMutationCallback.onMutationCallback():');
-      console.log('mutation:', mutation);
+      // console.warn('ControlsEventListener.onContainerMutationCallback.onMutationCallback():');
+      // console.log('mutation:', mutation);
       // console.log('mutation:', mutation);
 
       // const targetCloneElement = this.controls.firstChild?.childNodes[1];
@@ -144,13 +144,13 @@ export class ControlsEventListener extends EventTarget {
     // return;
     for (const mutation of mutations) {
 
-      console.log('ControlsEventListener.onControlsMutationCallback(): mutation:', mutation.removedNodes, mutation.addedNodes);
+      // console.log('ControlsEventListener.onControlsMutationCallback(): mutation:', mutation.removedNodes, mutation.addedNodes);
 
       if (mutation.removedNodes) {
         for (const node of mutation.removedNodes) {
           if (node === this.button) {
             this.observers.controls.disconnect();
-            console.info('return button');
+            // console.info('return button');
 
             const node = this.container.children[0]?.querySelector('[aria-label="Channel"]')?.cloneNode(true) as HTMLElement;
             node.ariaLabel = 'SponsorBlock';
@@ -171,13 +171,13 @@ export class ControlsEventListener extends EventTarget {
     // return;
     for (const mutation of mutations) {
 
-      console.log('ControlsEventListener.onOverlayContainerMutationCallback(): mutation:', mutation.removedNodes, mutation.addedNodes);
+      // console.log('ControlsEventListener.onOverlayContainerMutationCallback(): mutation:', mutation.removedNodes, mutation.addedNodes);
 
       if (mutation.removedNodes) {
         for (const node of mutation.removedNodes) {
           if (node === this.button) {
             this.observers.controls.disconnect();
-            console.info('return button');
+            // console.info('return button');
 
             const node = this.container.children[0]?.querySelector('[aria-label="Channel"]')?.cloneNode(true) as HTMLElement;
             node.ariaLabel = 'SponsorBlock';

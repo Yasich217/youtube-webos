@@ -17,7 +17,7 @@ export class OverlayEventListener extends EventTarget {
     this.observer = new MutationObserver(this.onMutationCallback);
     this.container = new MutationObserver(this.onContainerMutationCallback);
 
-    console.log('overlay instance obj', (this.overlay as any).__instance);
+    console.log('overlay instance', (this.overlay as any).__instance);
 
     if (123 !== 123) {
       this.observer.observe(this.overlay, {
@@ -64,7 +64,8 @@ export class OverlayEventListener extends EventTarget {
       }
 
       console.info('OverlayEventListener.onContainerMutationCallback():');
-      console.log('mutation:', mutation);
+      // console.log('mutation:', mutation);
+      console.log('classlist diff:', mutation.oldValue?.split(' '), (mutation.target as HTMLElement).classList);
       // console.log('oldClassList:', mutation.oldValue?.split(' '));
       // console.log('newClassList:', (mutation.target as HTMLElement).classList);
     }
@@ -86,7 +87,7 @@ export class OverlayEventListener extends EventTarget {
       const isLastSetFocdValue = this.isRendererAdded && !mutation.oldValue?.includes('yt-unified-overlay-stage--focused') && !mutation.oldValue?.includes('yt-unified-overlay-stage--hidden');
 
       if (isLastSetFocdValue && targetElement.classList.contains('yt-unified-overlay-stage--focused')) {
-        console.warn('observer container');
+        // console.warn('observer container');
         this.container.observe(this.overlay.querySelector('.ytlr-animated-overlay') as HTMLElement, {
           attributes: true,
           attributeOldValue: true,
@@ -110,9 +111,8 @@ export class OverlayEventListener extends EventTarget {
       }
 
       console.warn('OverlayEventListener.onMutationCallback():');
-      console.log('mutation:', mutation);
-      // console.log('oldClassList:', mutation.oldValue?.split(' '));
-      // console.log('newClassList:', (mutation.target as HTMLElement).classList);
+      // console.log('mutation:', mutation);
+      console.log('classlist diff:', mutation.oldValue?.split(' '), (mutation.target as HTMLElement).classList);
     }
   }
 
