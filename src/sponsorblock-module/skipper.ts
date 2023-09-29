@@ -49,7 +49,7 @@ export class SponsorblockSkipper {
 
   onTimeupdateEvent = (e: Event) => {
     const factor = (this.delta / 1000);
-    const gap = 0.1;
+    const gap = 0.5;
     const currentTime = this.video.currentTime;
     // Sometimes timeupdate event (that calls scheduleSkip) gets fired right before
     // already scheduled skip routine below. Let's just look back a little bit
