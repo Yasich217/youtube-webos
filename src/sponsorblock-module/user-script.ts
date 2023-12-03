@@ -39,18 +39,20 @@ export const run = () => {
 
     console.log('OverlayEventListener created instance', overlay);
 
-    const onPlayerStart = async () => {
-      const videoID = getVideoId();
+    let lastVideoId = getVideoId();
 
-      if (!videoID) {
+    const onPlayerStart = async () => {
+      lastVideoId = getVideoId();
+
+      if (!lastVideoId) {
         throw Error('videoID not found');
       }
 
-      console.log('watch video', videoID);
+      console.log('watch video', lastVideoId);
 
       const startTime = performance.now();
 
-      const segments = await fetchSegments(videoID);
+      const segments = await fetchSegments(lastVideoId);
 
       const endTime = performance.now();
 
@@ -62,10 +64,9 @@ export const run = () => {
     };
 
     const onPlayerClose = () => {
-      const videoID = getVideoId();
       sponsorblock.setSegments([]);
       slider.unmount();
-      console.log('close video', videoID);
+      console.log('close video', lastVideoId);
     };
 
     player.addEventListener('playing', onPlayerStart);
@@ -77,10 +78,5 @@ export const run = () => {
   player.addEventListener('ready', onPlayerReady);
   player.addEventListener('error', (e) => {
     console.error('VideoEventListener emited error', e);
-  });
-
-  window.addEventListener('hashchange', (event) => {
-    // https://www.youtube.com/tv?#/watch?v=pj0hHmMR_yQ
-    console.log('user-script.run(): on hashchange', new Date(), [event.oldURL, event.newURL], event);
   });
 };

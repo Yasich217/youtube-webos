@@ -172,10 +172,6 @@ export class SliderOverlay {
   createSegmentOverlay = () => {
     const videoDuration = this.video.duration;
 
-    if (!videoDuration) {
-      console.warn('video duration incorrected', this.video.currentTime);
-    }
-
     this.segments.forEach((segment) => {
       const [start, end] = segment.segment;
 

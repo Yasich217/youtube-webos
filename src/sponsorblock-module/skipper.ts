@@ -67,7 +67,7 @@ export class SponsorblockSkipper {
     const [segment] = nextSegments;
     const [start, end] = segment.segment;
 
-    if (currentTime - gap <= start && currentTime + gap + factor >= start) {
+    if (currentTime - gap <= start && currentTime + gap >= start) {
       this.video.currentTime = end;
 
       // Сбрасываем дельту после скипа.
