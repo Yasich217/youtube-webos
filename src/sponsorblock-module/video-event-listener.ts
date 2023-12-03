@@ -20,7 +20,7 @@ export class VideoEventListener extends EventTarget {
         this.observer = new MutationObserver(this.onMutationCallback);
 
         this.observer.observe(this.video, {
-          attributeFilter: ['src'],
+          attributeFilter: ['src', 'controlslist'],
           attributeOldValue: true,
           attributes: true,
         });
@@ -79,10 +79,13 @@ export class VideoEventListener extends EventTarget {
   onMutationCallback: MutationCallback = (mutations) => {
     for (const mutation of mutations) {
       const isEmptyTargetSrc = !(mutation.target as HTMLVideoElement).src?.length;
+      const isNewSrc = mutation.attributeName === 'src' && mutation.oldValue === null;
 
       const isStartPlay = [
-        mutation.attributeName === 'src',
-        mutation.oldValue === null,
+        isNewSrc || (
+          mutation.attributeName === 'controlslist' && mutation.oldValue === "nodownload"
+        ),
+        this.video?.duration,
         !isEmptyTargetSrc
       ];
 
@@ -94,8 +97,6 @@ export class VideoEventListener extends EventTarget {
 
       if (isStartPlay.every(Boolean)) {
         const ev = new Event('playing');
-
-        // console.log('VideoEventListener: emit playing event', ev);
 
         this.dispatchEvent(ev);
 
@@ -112,8 +113,7 @@ export class VideoEventListener extends EventTarget {
         continue; // TODO: REMOVE?
       }
 
-      console.warn('VideoEventListener.onMutationCallback():', mutation);
-      // console.log('mutation:', mutation);
+      console.warn('VideoEventListener.onMutationCallback():', this.video?.duration, mutation);
     }
   }
 }
