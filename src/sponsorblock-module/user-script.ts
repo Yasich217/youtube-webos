@@ -39,7 +39,7 @@ export const run = () => {
 
     console.log('OverlayEventListener created instance', overlay);
 
-    let lastVideoId = getVideoId();
+    let lastVideoId: string | null = null;
 
     const onPlayerStart = async () => {
       lastVideoId = getVideoId();

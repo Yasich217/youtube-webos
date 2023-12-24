@@ -3,9 +3,12 @@
 export class VideoEventListener extends EventTarget {
   video?: HTMLVideoElement;
   observer?: MutationObserver;
+  started: boolean;
 
   constructor() {
     super();
+
+    this.started = false;
 
     this.waitToVideo().then(
       () => {
@@ -76,44 +79,74 @@ export class VideoEventListener extends EventTarget {
     });
   });
 
+  waitToCloseVideo = () => new Promise<void>((resolve, reject) => {
+    const body = document.querySelector('body') as HTMLBodyElement;
+
+    const callback = () => {
+      observer.disconnect();
+      resolve();
+    }
+
+    const observer = new MutationObserver((mutations, _observer) => {
+      for (const mutation of mutations) {
+        const classList = (mutation.target as HTMLBodyElement).classList;
+
+        /** Если режим воспроизведения прекращён. */
+        if (classList.contains('WEB_PAGE_TYPE_BROWSE') && mutation.oldValue?.includes('WEB_PAGE_TYPE_WATCH')) {
+          console.log('VideoEventListener.waitToCloseVideo(): Выход из режима воспроизведения');
+          callback();
+        }
+      }
+    });
+
+    observer.observe(body, {
+      attributes: true,
+      attributeOldValue: true,
+      attributeFilter: ['class'],
+    });
+  });
+
   onMutationCallback: MutationCallback = (mutations) => {
     for (const mutation of mutations) {
-      const isEmptyTargetSrc = !(mutation.target as HTMLVideoElement).src?.length;
+      const targetMutation = mutation.target as HTMLVideoElement;
+      const isEmptyTargetSrc = !targetMutation.src.length;
       const isNewSrc = mutation.attributeName === 'src' && mutation.oldValue === null;
 
       const isStartPlay = [
         isNewSrc || (
           mutation.attributeName === 'controlslist' && mutation.oldValue === "nodownload"
         ),
-        this.video?.duration,
+        !!this.video?.duration,
+        !this.started,
         !isEmptyTargetSrc
-      ];
-
-      const isFinishPlay = [
-        mutation.attributeName === 'src',
-        !!mutation.oldValue?.length,
-        isEmptyTargetSrc
       ];
 
       if (isStartPlay.every(Boolean)) {
         const ev = new Event('playing');
 
+        this.started = true;
+
         this.dispatchEvent(ev);
+
+        this.waitToCloseVideo().then(() => {
+          const ev = new Event('finished');
+
+          this.started = false;
+
+          console.log('VideoEventListener: emit finished event', ev);
+
+          this.dispatchEvent(ev);
+        });
 
         continue; // TODO: REMOVE?
       }
 
-      if (isFinishPlay.every(Boolean)) {
-        const ev = new Event('finished');
-
-        // console.log('VideoEventListener: emit finished event', ev);
-
-        this.dispatchEvent(ev);
-
-        continue; // TODO: REMOVE?
-      }
-
-      console.warn('VideoEventListener.onMutationCallback():', this.video?.duration, mutation);
+      console.warn('VideoEventListener.onMutationCallback():', [
+        `src ${targetMutation.src}`,
+        `oldValue ${mutation.oldValue}`,
+        `attributeName ${mutation.attributeName}`,
+        `video.duration ${this.video?.duration}`,
+      ]);
     }
   }
 }
