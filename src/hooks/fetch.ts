@@ -13,6 +13,34 @@ type HookedType = 'request' | 'response';
 const isHookedType = (t: unknown): t is HookedType =>
   t === 'request' || t === 'response';
 
+const isSensitiveVotRequest = (resource: FetchTarget): boolean => {
+  try {
+    const url = new URL(
+      resource instanceof Request ? resource.url : resource.toString(),
+      document.location.href
+    );
+    return (
+      (url.origin === 'http://127.0.0.1:8767' && url.pathname === '/v1/load') ||
+      (url.origin === 'http://127.0.0.1:8766' &&
+        url.pathname === '/v1/fetch') ||
+      (url.origin === 'http://127.0.0.1:8768' &&
+        (url.pathname === '/v1/auth/pair/start' ||
+          url.pathname === '/v1/auth/pair/cancel'))
+    );
+  } catch {
+    return false;
+  }
+};
+
+const resourceForLog = (resource: FetchTarget, sensitive: boolean): unknown =>
+  sensitive && resource instanceof Request ? resource.url : resource;
+
+const initForLog = (
+  init: RequestInit | undefined,
+  sensitive: boolean
+): RequestInit | undefined =>
+  sensitive && init ? { ...init, body: '[redacted]' } : init;
+
 export interface RequestInfo {
   url: URL;
   resource: FetchTarget;
@@ -91,13 +119,19 @@ export class FetchRegistry extends CustomEventTarget<EventMap> {
       return this.#originalFetch(resource as Parameters<typeof fetch>[0], init);
     }
 
-    if (window.__ytaf_debug__) {
-      console.debug(`Request ${this.#fetchCount}:`, resource);
-      init && console.debug(`Options  ${this.#fetchCount}:`, init);
+    const sensitive = isSensitiveVotRequest(resource);
+    const loggedResource = resourceForLog(resource, sensitive);
+    const loggedInit = initForLog(init, sensitive);
 
-      if (resource instanceof Request) {
+    if (window.__ytaf_debug__) {
+      console.debug(`Request ${this.#fetchCount}:`, loggedResource);
+      loggedInit && console.debug(`Options  ${this.#fetchCount}:`, loggedInit);
+
+      if (resource instanceof Request && !sensitive) {
         const reqBody = await FetchRegistry.#dumpBody(resource);
         reqBody && console.debug(`Request Body ${this.#fetchCount}:`, reqBody);
+      } else if (resource instanceof Request && sensitive) {
+        console.debug(`Request Body ${this.#fetchCount}:`, '[redacted]');
       }
     }
 
@@ -119,19 +153,23 @@ export class FetchRegistry extends CustomEventTarget<EventMap> {
     if (!reqAllowed) {
       console.info(
         `Fetch request ${this.#fetchCount} was cancelled by listener.`,
-        resource,
-        init
+        loggedResource,
+        loggedInit
       );
       throw new TypeError('Failed to fetch');
     }
 
-    const res = await this.#originalFetch(resource, init);
+    const res = await this.#originalFetch(resource as Parameters<typeof fetch>[0], init);
 
     if (window.__ytaf_debug__) {
       console.debug(`Response ${this.#fetchCount}:`, res);
 
-      const resBody = await FetchRegistry.#dumpBody(res);
-      resBody && console.debug(`Response Body ${this.#fetchCount}:`, resBody);
+      if (sensitive) {
+        console.debug(`Response Body ${this.#fetchCount}:`, '[redacted]');
+      } else {
+        const resBody = await FetchRegistry.#dumpBody(res);
+        resBody && console.debug(`Response Body ${this.#fetchCount}:`, resBody);
+      }
     }
 
     let resAllowed = true;

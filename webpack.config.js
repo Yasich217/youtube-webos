@@ -2,6 +2,7 @@ import CopyPlugin from 'copy-webpack-plugin';
 import { TransformAsyncModulesPlugin } from 'transform-async-modules-webpack-plugin';
 import pkgJson from './package.json' with { type: 'json' };
 import TerserPlugin from 'terser-webpack-plugin';
+import webpack from 'webpack';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -10,7 +11,7 @@ const __dirname = path.dirname(__filename);
 
 /** @type {(env: Record<string, string>) => (import('webpack').Configuration)[]} */
 const makeConfig = (env) => {
-  const isModern = env && env.modern;
+  const isModern = Boolean(env && env.modern);
 
   return [
     {
@@ -144,10 +145,19 @@ const makeConfig = (env) => {
         hints: false,
       },
       plugins: [
+        // @vot.js/shared uses node:crypto only when window.crypto is absent.
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^node:crypto$/,
+          contextRegExp: /@vot\.js[/\\]shared/
+        }),
         new CopyPlugin({
           patterns: [
             { context: 'assets', from: '**/*' },
-            { context: 'src', from: 'index.html' }
+            { context: 'src', from: 'index.html' },
+            {
+              from: path.resolve(__dirname, 'src/voice-over-translation/vendor/qrcode-terminal/LICENSE'),
+              to: 'licenses/qrcode-terminal.LICENSE'
+            }
           ]
         }),
         // Only add Async Module support for Legacy builds

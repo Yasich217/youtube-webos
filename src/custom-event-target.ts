@@ -1,16 +1,17 @@
-type TypedEventPartial<T extends EventTarget, U> = {
+import { createCustomEventTargetConstructor } from './legacy-event-target';
+
+type TypedEventPartial<T, U> = {
   readonly currentTarget: T | null;
   readonly type: U;
 };
 
-type BaseTypedEvent<T extends EventTarget, E extends Event, U> = E &
-  TypedEventPartial<T, U>;
+type BaseTypedEvent<T, E extends Event, U> = E & TypedEventPartial<T, U>;
 
-export type TypedCustomEvent<
-  D,
-  T extends EventTarget,
-  U = string
-> = BaseTypedEvent<T, CustomEvent<D>, U>;
+export type TypedCustomEvent<D, T, U = string> = BaseTypedEvent<
+  T,
+  CustomEvent<D>,
+  U
+>;
 
 export const TypedCustomEvent = CustomEvent as {
   new <const U extends string, const D = undefined>(
@@ -29,7 +30,7 @@ type EventMapValue<
 > = T[K] extends Event ? T[K] : never;
 
 interface EventListener<
-  Self extends EventTarget,
+  Self,
   T extends EmptyEventMap,
   EventName extends keyof T
 > {
@@ -37,7 +38,7 @@ interface EventListener<
 }
 
 interface EventListenerObject<
-  Self extends EventTarget,
+  Self,
   T extends EmptyEventMap,
   EventName extends keyof T
 > {
@@ -45,7 +46,7 @@ interface EventListenerObject<
 }
 
 type EventListenerArg<
-  Self extends EventTarget,
+  Self,
   T extends EmptyEventMap,
   EventName extends keyof T
 > =
@@ -71,7 +72,9 @@ interface CustomEventTarget<T extends EmptyEventMap> {
   ): boolean;
 }
 
-export const CustomEventTarget = EventTarget as {
+export const CustomEventTarget = createCustomEventTargetConstructor(
+  EventTarget
+) as {
   new <T extends EmptyEventMap>(): CustomEventTarget<T>;
   prototype: CustomEventTarget<EmptyEventMap>;
 };
