@@ -1,0 +1,157 @@
+#!/bin/sh
+
+set -eu
+
+BASE_DIR="/home/root/local-patches/vot/service"
+RUNNER="$BASE_DIR/vot-runner.sh"
+RUNTIME_DIR="/run/youtube-vot"
+PROC_ROOT="${VOT_PROC_ROOT:-/proc}"
+umask 077
+STOP_GRACE_SECONDS=10
+STOP_KILL_SECONDS=2
+
+ensure_runtime_dir() {
+    [ ! -L "$RUNTIME_DIR" ] || return 1
+    mkdir -p "$RUNTIME_DIR"
+    chmod 700 "$RUNTIME_DIR"
+}
+
+is_expected_runner() {
+    pid="$1"
+    name="$2"
+    [ -r "$PROC_ROOT/$pid/cmdline" ] || return 1
+    cmdline="$(tr '\000' ' ' <"$PROC_ROOT/$pid/cmdline")"
+    case "$cmdline" in
+        *"$RUNNER $name"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+is_expected_service_process() {
+    expected_pid="$1"
+    expected_name="$2"
+    [ -r "$PROC_ROOT/$expected_pid/cmdline" ] || return 1
+    expected_cmdline="$(tr '\000' ' ' <"$PROC_ROOT/$expected_pid/cmdline")"
+    case "$expected_cmdline" in
+        *"$RUNNER $expected_name"*|*"$BASE_DIR/$expected_name.cjs"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+expected_process_exists() {
+    expected_name="$1"
+    for expected_proc in "$PROC_ROOT"/[0-9]*; do
+        expected_pid="${expected_proc##*/}"
+        if is_expected_service_process "$expected_pid" "$expected_name"; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+signal_expected_processes() {
+    expected_name="$1"
+    expected_signal="$2"
+    for expected_proc in "$PROC_ROOT"/[0-9]*; do
+        expected_pid="${expected_proc##*/}"
+        if is_expected_service_process "$expected_pid" "$expected_name"; then
+            kill "-$expected_signal" "$expected_pid" 2>/dev/null || true
+        fi
+    done
+}
+
+wait_for_expected_processes() {
+    expected_name="$1"
+    expected_limit="$2"
+    expected_attempt=0
+    while expected_process_exists "$expected_name" &&
+        [ "$expected_attempt" -lt "$expected_limit" ]; do
+        sleep 1
+        expected_attempt=$((expected_attempt + 1))
+    done
+    ! expected_process_exists "$expected_name"
+}
+
+start_runner() {
+    name="$1"
+    pid_file="$RUNTIME_DIR/$name-runner.pid"
+
+    if [ -f "$pid_file" ]; then
+        old_pid="$(cat "$pid_file" 2>/dev/null || true)"
+        if [ -n "$old_pid" ] && is_expected_runner "$old_pid" "$name"; then
+            return 0
+        fi
+    fi
+
+    if expected_process_exists "$name"; then
+        echo "refusing duplicate VOT runner: $name" >&2
+        return 1
+    fi
+
+    "$RUNNER" "$name" </dev/null >/dev/null 2>&1 &
+    echo "$!" >"$pid_file"
+}
+
+stop_pid_file() {
+    name="$1"
+    pid_file="$2"
+    pid=""
+    if [ -f "$pid_file" ]; then
+        pid="$(cat "$pid_file" 2>/dev/null || true)"
+    fi
+    if [ -n "$pid" ] && is_expected_runner "$pid" "$name"; then
+        kill -TERM "$pid" 2>/dev/null || true
+    fi
+    # Always scan /proc: older init revisions removed their PID file before
+    # the audio child's longer mixer cleanup deadline had elapsed.
+    signal_expected_processes "$name" TERM
+
+    # The audio child allows up to eight seconds for symmetric unmix cleanup.
+    # Wait beyond that bound, then revalidate every cmdline before escalation.
+    if ! wait_for_expected_processes "$name" "$STOP_GRACE_SECONDS"; then
+        signal_expected_processes "$name" KILL
+        wait_for_expected_processes "$name" "$STOP_KILL_SECONDS" || {
+            echo "could not stop VOT runner and children: $name" >&2
+            return 1
+        }
+    fi
+    [ ! -f "$pid_file" ] || rm -f "$pid_file"
+}
+
+stop_runner() {
+    name="$1"
+    stop_pid_file "$name" "$RUNTIME_DIR/$name-runner.pid"
+    # Migration cleanup for versions that stored supervisor PIDs in /tmp.
+    stop_pid_file "$name" "/tmp/youtube-$name-runner.pid"
+}
+
+start_all() {
+    [ -x "$RUNNER" ] || exit 0
+    [ -f "$BASE_DIR/vot-proxy.cjs" ] || exit 0
+    [ -f "$BASE_DIR/vot-audio.cjs" ] || exit 0
+    [ -f "$BASE_DIR/vot-pairing.cjs" ] || exit 0
+    ensure_runtime_dir || exit 1
+    "$RUNNER" --check-runtime || exit 1
+    start_runner vot-proxy
+    start_runner vot-audio
+    start_runner vot-pairing
+}
+
+stop_all() {
+    stop_runner vot-pairing
+    stop_runner vot-audio
+    stop_runner vot-proxy
+}
+
+case "${1:-start}" in
+    start) start_all ;;
+    stop) stop_all ;;
+    restart)
+        stop_all
+        start_all
+        ;;
+    *)
+        echo "usage: $0 start|stop|restart" >&2
+        exit 2
+        ;;
+esac

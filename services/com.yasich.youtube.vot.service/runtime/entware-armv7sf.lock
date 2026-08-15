@@ -1,0 +1,24 @@
+# Package	Version	Feed-License	Filename	SHA256
+# Source: https://bin.entware.net/armv7sf-k3.2/
+# License values are copied verbatim from Entware's signed feed metadata.
+# Upstream notices, including glibc's LGPL terms, are pinned separately in
+# entware-armv7sf-notices.lock and bundled into every runtime archive.
+node	v18.20.2-2	MIT	node_v18.20.2-2_armv7-3.2.ipk	5b1e4aa2600832fe454e7dbe145c051d0500f97451ca107227269d2a9e04c279
+libc	2.27-12	GPL-3.0-with-GCC-exception	libc_2.27-12_armv7-3.2.ipk	9804543763cac74b46ef12b667c346bb4639bb9db2f8a4946da848cc76d126ad
+libgcc	8.4.0-12	GPL-3.0-with-GCC-exception	libgcc_8.4.0-12_armv7-3.2.ipk	7020bb4a3e39cf5ad590148504c3c7106c8736172725e3f34dff64168ddcf71f
+libssp	8.4.0-12	GPL-3.0-with-GCC-exception	libssp_8.4.0-12_armv7-3.2.ipk	5c967d29d059e89514c6d20875a1da36fdaae28983b329123b5c57c7fbc12a33
+librt	2.27-12	GPL-3.0-with-GCC-exception	librt_2.27-12_armv7-3.2.ipk	84482e1946131949e28eddf17a75ac00053d0ebd6db098c31bb8858e8e58809e
+libpthread	2.27-12	GPL-3.0-with-GCC-exception	libpthread_2.27-12_armv7-3.2.ipk	03192e5c3a9e91c37ce0c756343fdc1b4caa079a897f726ce5df151a606f5de1
+libstdcpp	8.4.0-12	GPL-3.0-with-GCC-exception	libstdcpp_8.4.0-12_armv7-3.2.ipk	2cda0a072723199c0cb6c3045ff56cefa1af98498db9bebe657f6bc736ae018b
+libopenssl	3.5.5-1	Apache-2.0	libopenssl_3.5.5-1_armv7-3.2.ipk	96f9fc0c1e9829b04defd1a26c9b6d0bf7c7424e067116b5d0c972d311432fde
+zlib	1.3.1-1	Zlib	zlib_1.3.1-1_armv7-3.2.ipk	8cca514bb067aa4c03155c609a916cf0036afc2919eac3957079668d10991c5e
+libnghttp2	1.66.0-1	MIT	libnghttp2_1.66.0-1_armv7-3.2.ipk	8158d5e5e1bdfec5b6e28635d4d8e5c4629923cc0650fdbfe61dace3eeea04b9
+libuv	1.48.0-1	MIT	libuv_1.48.0-1_armv7-3.2.ipk	f8c3a99014611dcc6791f7e6015236c5979f91a89e0746eda8d7acec1026826c
+libcares	1.34.6-1	MIT	libcares_1.34.6-1_armv7-3.2.ipk	6615bf9274b0d062230ebc621dee59c5fcd000fa3dca5c64bf18aabfd54b541f
+libatomic	8.4.0-12	GPL-3.0-with-GCC-exception	libatomic_8.4.0-12_armv7-3.2.ipk	f26ddb8e697dfc9de628452c794ee93c87fc648ef490c5cf970bb458f024956c
+mpg123	1.32.6-1	GPL-2.0-or-later	mpg123_1.32.6-1_armv7-3.2.ipk	6707391a1e96ec7c7415806308f48906dcd0fc6415319fc8176a5583af0ef499
+libmpg123	1.32.6-1	LGPL-2.1-only	libmpg123_1.32.6-1_armv7-3.2.ipk	a6a8725fef1ddaa36c3f4aa4ba07aaeee2c989f3bf25f2c43cca320b16ab9a17
+libout123	1.32.6-1	LGPL-2.1-or-later	libout123_1.32.6-1_armv7-3.2.ipk	b4450bcd71601d87ea9db0f62da5d3f342de634425bd20c590c7693deeb89b19
+libsyn123	1.32.6-1	LGPL-2.1-or-later	libsyn123_1.32.6-1_armv7-3.2.ipk	5cafe01d79ec932b40c785f67807d31ca455a77d6c8a21461bfcc7ce6433e10e
+libltdl	2.5.4-1	GPL-2.0+	libltdl_2.5.4-1_armv7-3.2.ipk	915335487a2a69fa512040c4f56bbba75e0b9a1966c635e5ead9d99394cae02c
+alsa-lib	1.2.11-1	LGPL-2.1-or-later	alsa-lib_1.2.11-1_armv7-3.2.ipk	5c9fc737bc3391530887ab0e68852e1cfc3d9bd788a020024c75d86e865b454f

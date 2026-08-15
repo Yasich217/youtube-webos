@@ -25,6 +25,8 @@ export const shortcutActions = {
   toggle_subs: 'Toggle Subtitles',
   toggle_comments: 'Toggle Comments',
   toggle_description: 'Toggle Description',
+  toggle_voice_over_translation: 'Toggle Voice-over Translation',
+  toggle_vot_lively_voice: 'Toggle VOT Lively Voice',
   save_to_playlist: 'Save / Watch Later',
   oled_toggle: 'Toggle OLED Care Mode',
   sb_manual_skip: 'Manual Skip / Jump to Highlight',
@@ -86,6 +88,17 @@ const configOptions = new Map([
   ['enableLegacyEmojiFix', { default: true, desc: 'Emoji + Characters Fix' }],
   ['hideGuestSignInPrompts', { default: false, desc: 'Guest Mode: Hide Sign-in Buttons' }],
   ['forceHighResVideo', { default: false, desc: 'Force Max Quality' }],
+  ['enableVoiceOverTranslation', { default: true, desc: 'Voice-over Translation' }],
+  ['enableVoiceOverTranslationNotifications', { default: true, desc: 'Translation Notifications' }],
+  ['voiceOverTranslationForceOriginalAudio', { default: false, desc: 'Replace YouTube Dubbing' }],
+  ['enableVoiceOverTranslationLivelyVoice', { default: false, desc: 'Yandex Lively Voices' }],
+  ['voiceOverTranslationMode', { default: 'foreign', desc: 'Automatic Translation' }],
+  ['voiceOverTranslationSourceLanguage', { default: 'auto', desc: 'Video Language' }],
+  ['voiceOverTranslationTargetLanguage', { default: 'ru', desc: 'Translate To' }],
+  ['voiceOverTranslationOriginalVolume', { default: 100, desc: 'Original Volume' }],
+  ['voiceOverTranslationVolume', { default: 50, desc: 'Translation Volume' }],
+  // Kept so existing localStorage values remain readable during upgrades.
+  ['voiceOverTranslationBalance', { default: 30, desc: 'Voice-over Balance' }],
   ['disableNotifications', { default: false, desc: 'Disable Notifications' }]
 ]);
 

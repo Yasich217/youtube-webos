@@ -19,13 +19,15 @@ import './screensaver-fix.js';
 import './yt-fixes.css';
 import './watch.js';
 import './lang-settings-fix';
+import './voice-over-translation';
+import './voice-over-translation/notifications';
 
 import { initBufferLimit } from './hooks/buffer-limit.js';
 import { getWebOSVersion } from './webos-utils.js';
 
 if (typeof initBufferLimit === 'function' && getWebOSVersion() <= 4) {
 	initBufferLimit();
-	console.info("Initiating buffer limit");
+		console.info('Initiating buffer limit');
 }
 
 (function oneTimeParamsCheck() {
