@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.4] - 2026/08/15
+
+### Voice-over Translation
+
+- Added a narrow Chromium 53 compatibility exception for the loopback
+  pairing-status GET while preserving strict Origin checks on every mutation
+  and on the temporary LAN listener.
+- Debounced rapid source/target language changes so the stale session stops
+  immediately but only the final language pair starts a new translation.
+- Suppressed translation workflow toasts when the video already matches the
+  Russian target language.
+- Replaced pairing-dialog DOM and string APIs unavailable in Chromium 53.
+
+## [0.8.3] - 2026/08/15
+
+### Voice-over Translation
+
+- Added synchronized voice-over translation backed by root-side proxy,
+  audio, and pairing services.
+- Added automatic language detection, forced-original YouTube audio,
+  standard/lively voices, OLED-safe status notifications, and programmable
+  remote shortcuts.
+- Added independent original/translation volume controls, including verified
+  `100 / 100` mixing on LG C4.
+- Added fail-closed foreground, playback lease, screensaver, stale-video, and
+  credential handling.
+- Added legacy Chromium Abort support, a pinned private armv7sf runtime, ALSA
+  `tts` to Pulse `ptts` routing, and acknowledged legacy mixer fallback for C9.
+- Added private `EventTarget` and real UTF-8 `TextEncoder` fallbacks for legacy
+  WAM engines whose function-shaped native constructors throw at runtime.
+- Accepted Chromium 53's literal `Origin: null` only on strict loopback VOT
+  APIs and seeded foreground state with a bounded one-shot Luna query before
+  relying on lifecycle subscriptions.
+- Added transactional service deployment, bounded rollback retention, and
+  bundled checksum-pinned third-party runtime notices. Deployments are locked,
+  provenance-checked against the release digest and package manifest, and stop
+  old supervisors before replacing files.
+- Documented the rooted webOS architecture, installation, rollback, live test
+  matrix, and compatibility probes in
+  [docs/voice-over-translation-webos.md](docs/voice-over-translation-webos.md).
+
 ## [0.8.2] - 2026/08/12
 
 ## Fixes

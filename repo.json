@@ -8,21 +8,21 @@
   "packages": [
     {
       "id": "youtube.leanback.v4",
-      "title": "YouTube AdFree",
-      "description": "YouTube AdFree",
-      "iconUri": "https://raw.githubusercontent.com/NicholasBly/youtube-webos/main/assets/icon.png",
+      "title": "YouTube AdFree + VOT",
+      "description": "YouTube AdFree with rooted voice-over translation (vot.2, based on upstream 0.8.2)",
+      "iconUri": "https://cdn.jsdelivr.net/gh/Yasich217/youtube-webos@homebrew-vot/assets/icon.png",
       "manifest": {
         "id": "youtube.leanback.v4",
-        "version": "0.8.2",
+        "version": "0.8.4",
         "type": "web",
-        "title": "YouTube AdFree",
-        "appDescription": "YouTube AdFree",
-        "iconUri": "https://raw.githubusercontent.com/NicholasBly/youtube-webos/main/assets/icon.png",
-        "sourceUrl": "https://github.com/NicholasBly/youtube-webos",
-        "rootRequired": false,
-        "ipkUrl": "https://github.com/NicholasBly/youtube-webos/releases/download/0.8.2/youtube.leanback.v4_0.8.2_all.ipk",
+        "title": "YouTube AdFree + VOT",
+        "appDescription": "YouTube AdFree with rooted voice-over translation (vot.2, based on upstream 0.8.2)",
+        "iconUri": "https://cdn.jsdelivr.net/gh/Yasich217/youtube-webos@homebrew-vot/assets/icon.png",
+        "sourceUrl": "https://github.com/Yasich217/youtube-webos/tree/feature/voice-over-translation",
+        "rootRequired": true,
+        "ipkUrl": "https://github.com/Yasich217/youtube-webos/releases/download/v0.8.4-vot.2/youtube.leanback.v4_0.8.4_all.ipk",
         "ipkHash": {
-          "sha256": "4010499f4d489db05ab438ea847dbe003cb77841baca4c66eb860f64a7274fd1"
+          "sha256": "60ebfa358ea5d32e72b72cc082661c7cfaaf112018df6a6467c4cae33720ed5e"
         }
       }
     },

@@ -3,11 +3,12 @@
  */
 
 import { FetchRegistry } from './hooks';
+import type { RequestInfo } from './hooks/fetch';
 
 export function initBlockWebOSCast() {
   console.info('[Block WebOS Cast] Initialized');
 
-  FetchRegistry.getInstance().addEventListener('request', (evt) => {
+  FetchRegistry.getInstance().addEventListener('request', (evt: CustomEvent<RequestInfo>) => {
     const { url } = evt.detail;
     if (url.pathname === '/wake_cast_core') evt.preventDefault();
   });
