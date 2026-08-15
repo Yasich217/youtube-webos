@@ -12,6 +12,9 @@ An upgraded fork of webosbrew's youtube-webos with extended features and fixes.
 - Hide Endcards
 - Shortcuts - Programmable 0-9 key shortcuts during video playback
 - Guest Mode: Hides annoying "Sign in" prompts
+- Root-backed Voice-over Translation with synchronized original/translated
+  audio, language detection, independent volume controls, live voices, and
+  remote shortcuts. See [the webOS VOT integration guide](docs/voice-over-translation-webos.md).
 
 - SponsorBlock: Highlight feature added
 -- All segment types added (Hook, Tangents, muted segments)
@@ -48,6 +51,7 @@ Review changes made since 0.3.8 [here](https://github.com/NicholasBly/youtube-we
 
 - Advertisements blocking
 - [SponsorBlock](https://sponsor.ajay.app/) integration
+- [Voice-over Translation for rooted webOS](docs/voice-over-translation-webos.md)
 - [Autostart](#autostart)
 
 **Note:** Configuration screen can be opened by pressing 🟩 GREEN button on the remote.
@@ -58,7 +62,13 @@ Review changes made since 0.3.8 [here](https://github.com/NicholasBly/youtube-we
 
 ## Installation
 
-- Use [webOS Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel) - app is available via repo link: https://raw.githubusercontent.com/NicholasBly/youtube-webos/main/repo.json
+- Use [webOS Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel).
+  For the rooted VOT build, add
+  `https://cdn.jsdelivr.net/gh/Yasich217/youtube-webos@homebrew-vot/repo.json`
+  after release `v0.8.5-vot.3` is published; keep the default Homebrew source
+  enabled. This CDN endpoint is also compatible with older webOS certificate
+  stores that reject the equivalent raw GitHub endpoint. The upstream non-VOT source remains
+  `https://raw.githubusercontent.com/NicholasBly/youtube-webos/main/repo.json`.
 - Use [Device Manager app](https://github.com/webosbrew/dev-manager-desktop) - see [Releases](https://github.com/NicholasBly/youtube-webos/releases) for a
   prebuilt `.ipk` binary file. A webOS22+ .ipk is available for users on 2022+ TVs, supporting webOS22-25. These are lighter, more optimized builds for newer hardware, without translation layers needed for older TVs.
 - Use [webOS TV CLI tools](https://webostv.developer.lge.com/develop/tools/cli-installation) -

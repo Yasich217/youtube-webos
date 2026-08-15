@@ -1,0 +1,17 @@
+# Component	Filename	URL	SHA256
+node	node-LICENSE.txt	https://raw.githubusercontent.com/nodejs/node/9aedf16f8fb3b2e397a07e3844dd964ce435a8e3/LICENSE	66233b87054d6bca9b0c2f23b027bb2caf1ebd961a6f981616d098dade33af34
+glibc	glibc-COPYING.txt	https://raw.githubusercontent.com/bminor/glibc/23158b08a0908f381459f273a984c6fd328363cb/COPYING	8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643
+glibc	glibc-COPYING.LIB.txt	https://raw.githubusercontent.com/bminor/glibc/23158b08a0908f381459f273a984c6fd328363cb/COPYING.LIB	dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551
+gcc-runtime	gcc-COPYING3.txt	https://raw.githubusercontent.com/gcc-mirror/gcc/8cd3bffead2ed1d1998c190865694f920fbc93ab/COPYING3	8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903
+gcc-runtime	gcc-COPYING.RUNTIME.txt	https://raw.githubusercontent.com/gcc-mirror/gcc/8cd3bffead2ed1d1998c190865694f920fbc93ab/COPYING.RUNTIME	9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74
+openssl	openssl-LICENSE.txt	https://raw.githubusercontent.com/openssl/openssl/67b5686b4419b4cb8caa502711c41815f5279751/LICENSE.txt	7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a
+zlib	zlib-LICENSE.txt	https://raw.githubusercontent.com/madler/zlib/51b7f2abdade71cd9bb0e7a373ef2610ec6f9daf/LICENSE	845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243
+nghttp2	nghttp2-COPYING.txt	https://raw.githubusercontent.com/nghttp2/nghttp2/ac22e0efe3f82f43c1366961c89a50ee821cfba3/COPYING	6b94f3abc1aabd0c72a7c7d92a77f79dda7c8a0cb3df839a97890b4116a2de2a
+libuv	libuv-LICENSE.txt	https://raw.githubusercontent.com/libuv/libuv/e9f29cb984231524e3931aa0ae2c5dae1a32884e/LICENSE	16de0c32b265cb7d46a6d3bd614f259dd4d693a5e26b3407b04aae8d73041f0c
+c-ares	c-ares-LICENSE.txt	https://raw.githubusercontent.com/c-ares/c-ares/3ac47ee46edd8ea40370222f91613fc16c434853/LICENSE.md	460f5e768fda3752ca2169a95df062578a10fb126bfd65f3b9b1a1bed2f84807
+mpg123	mpg123-COPYING.txt	https://raw.githubusercontent.com/madebr/mpg123/446e6ee5367d881d92c889eb5edfd649f4cb1074/COPYING	c22482728a634a8dfdb4ff72a96d4c1ed64cd8f3e79335c401751ac591609366
+mpg123	mpg123-AUTHORS.txt	https://raw.githubusercontent.com/madebr/mpg123/446e6ee5367d881d92c889eb5edfd649f4cb1074/AUTHORS	bfa5dab0ed3b3ea7a9c76961fcf76df5a5d8e5107cb05d31cf6c5880919b89e5
+libltdl	libltdl-README.txt	https://raw.githubusercontent.com/autotools-mirror/libtool/db22f7fce768951ac89a83ea3ddedbb8a46511f7/libltdl/README	26e2d89c51590f945f7b4c7ce1223568892ef654751ddb347d512370b725240d
+gnu-license	GNU-GPL-2.0.txt	https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt	edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6
+gnu-license	GNU-LGPL-2.1.txt	https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt	20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95
+alsa-lib	alsa-lib-COPYING.txt	https://raw.githubusercontent.com/alsa-project/alsa-lib/7e3a3c2b0a092d0f568ba3c98365030dd91cc877/COPYING	32434afcc8666ba060e111d715bfdb6c2d5dd8a35fa4d3ab8ad67d8f850d2f2b

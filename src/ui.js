@@ -13,6 +13,8 @@ import logoRedUrl from './icons/logo-red.png';
 import logoDarkUrl from './icons/logo-dark.png';
 import { getWebOSVersion } from './webos-utils.js';
 import { showNotification as _showNotification, setNotificationOled, setNotificationTheme } from './notifications.js';
+import { openPairingDialog } from './voice-over-translation/pairing-dialog';
+import { votPairingClient } from './voice-over-translation/pairing-client';
 
 // Re-export so existing `import { showNotification } from './ui'` sites keep working.
 export const showNotification = _showNotification;
@@ -33,6 +35,8 @@ let activeSeekNotification = null;
 
 let activePlayPauseNotification = null;
 let playPauseNotificationTimer = null;
+let yandexPairingLabel = 'Open QR pairing';
+const yandexPairingDisplayUpdaters = new Set();
 
 // Lazy load variable
 let optionsPanel = null;
@@ -107,6 +111,8 @@ const ACTION_SCOPES = {
     toggle_subs: 'VIDEO',
     toggle_comments: 'VIDEO',
     toggle_description: 'VIDEO',
+    toggle_voice_over_translation: 'VIDEO',
+    toggle_vot_lively_voice: 'VIDEO',
     save_to_playlist: 'VIDEO',
     sb_skip_prev: 'VIDEO',
     sb_manual_skip: 'VIDEO'
@@ -330,6 +336,99 @@ function createOpacityControl(key) {
   return container;
 }
 
+function createVoiceOverVolumeControl(key) {
+  const step = 5;
+  const clampVolume = (value) => Math.min(100, Math.max(0, Number(value) || 0));
+  const displayValue = () => `${clampVolume(configRead(key))}%`;
+  const changeValue = (delta) => {
+    configWrite(key, clampVolume(Number(configRead(key)) + delta));
+    updateDisplay();
+  };
+  const { container, updateDisplay } = createGenericControlRow(
+    configGetDesc(key),
+    displayValue,
+    () => changeValue(-step),
+    () => changeValue(step),
+    () => changeValue(step)
+  );
+
+  configAddChangeListener(key, updateDisplay);
+  updateDisplay();
+  return container;
+}
+
+function updateYandexPairingLabel(status) {
+  yandexPairingLabel = status?.valid
+    ? status.accountLabel
+      ? `Connected · ${status.accountLabel}`
+      : 'Connected'
+    : 'Open QR pairing';
+  yandexPairingDisplayUpdaters.forEach((update) => {
+    update();
+  });
+}
+
+async function openYandexPairing() {
+  const status = await openPairingDialog();
+  updateYandexPairingLabel(status);
+  if (status.valid) {
+    configWrite('enableVoiceOverTranslationLivelyVoice', true);
+    showNotification('Yandex Lively Voices Connected');
+  }
+  return status;
+}
+
+function createYandexPairingControl() {
+  const activate = () => {
+    void openYandexPairing();
+  };
+  const { container, updateDisplay } = createGenericControlRow(
+    'Yandex account',
+    () => yandexPairingLabel,
+    activate,
+    activate,
+    activate
+  );
+  yandexPairingDisplayUpdaters.add(updateDisplay);
+  updateDisplay();
+  void votPairingClient
+    .status()
+    .then(updateYandexPairingLabel)
+    .catch(() => updateYandexPairingLabel(null));
+  return container;
+}
+
+window.addEventListener('ytaf-vot-pairing-required', () => {
+  void openYandexPairing();
+});
+
+const voiceOverTranslationModes = {
+  foreign: 'Different-language videos',
+  always: 'Every video'
+};
+
+const voiceOverTranslationSourceLanguages = {
+  auto: 'Auto-detect',
+  en: 'English',
+  ru: 'Russian',
+  zh: 'Chinese',
+  ko: 'Korean',
+  lt: 'Lithuanian',
+  lv: 'Latvian',
+  ar: 'Arabic',
+  fr: 'French',
+  it: 'Italian',
+  es: 'Spanish',
+  de: 'German',
+  ja: 'Japanese'
+};
+
+const voiceOverTranslationTargetLanguages = {
+  ru: 'Russian',
+  en: 'English',
+  kk: 'Kazakh'
+};
+
 // --- Main Options Panel Logic ---
 
 function createOptionsPanel() {
@@ -345,7 +444,7 @@ function createOptionsPanel() {
 
   let activePage = 0;
   elmContainer.activePage = 0;
-  let pageMain, pageSponsor, pageShortcuts, pageUITweaks;
+  let pageMain, pageSponsor, pageShortcuts, pageUITweaks, pageTranslation;
 
   const tabMenu = createElement('div', { 
     class: 'ytaf-tab-menu',
@@ -358,9 +457,9 @@ function createOptionsPanel() {
       }
     }
   });
-  const tabs = ['Main', 'SponsorBlock', 'Shortcuts', 'UI Tweaks'];
-  const tabBtns = tabs.map((name, index) => {
-    return createElement('button', {
+  const tabs = ['Main', 'SponsorBlock', 'Shortcuts', 'UI Tweaks', 'Translation'];
+  const tabBtns = tabs.map((name, index) =>
+    createElement('button', {
       class: index === 0 ? 'ytaf-tab-btn active' : 'ytaf-tab-btn',
       text: name,
       tabIndex: 0,
@@ -368,15 +467,17 @@ function createOptionsPanel() {
         click: () => setActivePage(index),
         mouseenter: (e) => e.target.focus()
       }
-    });
+    })
+  );
+  tabBtns.forEach((btn) => {
+    tabMenu.appendChild(btn);
   });
-  tabBtns.forEach(btn => tabMenu.appendChild(btn));
 
 	const setActivePage = (pageIndex) => {
 	  if (pageIndex === activePage) return; // Don't do work if we are already on this tab
-	  const pagesArray = [pageMain, pageSponsor, pageShortcuts, pageUITweaks];
-	  const focusSelectors = ['input', '.shortcut-control-row, input', '.shortcut-control-row', '.shortcut-control-row, input'];
-	  const hasPopups = [false, true, false, false];
+	  const pagesArray = [pageMain, pageSponsor, pageShortcuts, pageUITweaks, pageTranslation];
+	  const focusSelectors = ['input', '.shortcut-control-row, input', '.shortcut-control-row', '.shortcut-control-row, input', 'input, .shortcut-control-row'];
+	  const hasPopups = [false, true, false, false, false];
 
 	  // 1. Deactivate old state
 	  pagesArray[activePage].style.display = 'none';
@@ -435,7 +536,7 @@ function createOptionsPanel() {
 
         if (preFocus === postFocus) {
           const activeTabBtn = tabBtns[activePage];
-		  const pagesList = [pageMain, pageSponsor, pageShortcuts, pageUITweaks];
+		  const pagesList = [pageMain, pageSponsor, pageShortcuts, pageUITweaks, pageTranslation];
 		  const visiblePage = pagesList[activePage]; 
 		  let pageFocusables = [];
 
@@ -485,13 +586,15 @@ function createOptionsPanel() {
   const elAdBlock = createConfigCheckbox('enableAdBlock');
   const elTrackingBlock = createConfigCheckbox('enableTrackingBlock');
   const cosmeticGroup = [elAdBlock, elTrackingBlock];
-  let elRemoveGlobalShorts = null, elRemoveTopLiveGames = null, elRemoveMostRelevant = null, elGuestPrompts = null;
-  
-  elRemoveGlobalShorts = createConfigCheckbox('removeGlobalShorts');
-  elRemoveTopLiveGames = createConfigCheckbox('removeTopLiveGames');
-  elRemoveMostRelevant = createConfigCheckbox('removeMostRelevant');
+  const elRemoveGlobalShorts = createConfigCheckbox('removeGlobalShorts');
+  const elRemoveTopLiveGames = createConfigCheckbox('removeTopLiveGames');
+  const elRemoveMostRelevant = createConfigCheckbox('removeMostRelevant');
+  const elGuestPrompts = isGuestMode()
+    ? createConfigCheckbox('hideGuestSignInPrompts')
+    : null;
+
   cosmeticGroup.push(elRemoveGlobalShorts, elRemoveTopLiveGames, elRemoveMostRelevant);
-  if (isGuestMode()) { elGuestPrompts = createConfigCheckbox('hideGuestSignInPrompts'); cosmeticGroup.push(elGuestPrompts); }
+  if (elGuestPrompts) cosmeticGroup.push(elGuestPrompts);
 
   pageMain.appendChild(createSection('Cosmetic Filtering', cosmeticGroup));
 
@@ -503,7 +606,9 @@ function createOptionsPanel() {
   const adBlockDependents = [elRemoveGlobalShorts, elRemoveTopLiveGames, elRemoveMostRelevant, elGuestPrompts];
   const updateDependencyState = () => {
     const enabled = configRead('enableAdBlock');
-    adBlockDependents.forEach(el => setState(el, enabled));
+    adBlockDependents.forEach((el) => {
+      setState(el, enabled);
+    });
   };
   
   elAdBlock.querySelector('input').addEventListener('change', updateDependencyState);
@@ -556,6 +661,47 @@ function createOptionsPanel() {
   pageUITweaks.appendChild(createSection('Player UI Tweaks', playerUITweaks));
   
   elmContainer.appendChild(pageUITweaks);
+
+  // --- Page 5: Translation ---
+  pageTranslation = createElement('div', {
+    class: 'ytaf-settings-page',
+    id: 'ytaf-page-translation',
+    style: { display: 'none' }
+  });
+  pageTranslation.appendChild(
+    createSection('Voice-over Translation', [
+      createConfigCheckbox('enableVoiceOverTranslation'),
+      createConfigCheckbox('enableVoiceOverTranslationNotifications'),
+      createConfigCheckbox('voiceOverTranslationForceOriginalAudio'),
+      createConfigCheckbox('enableVoiceOverTranslationLivelyVoice'),
+      createYandexPairingControl(),
+      createElement('div', {
+        text: 'Lively voices currently support English to Russian translation.',
+        style: { color: '#aaa', fontSize: '18px', padding: '4px 12px 12px' }
+      }),
+      createCycleControl(
+        'voiceOverTranslationMode',
+        'Automatic translation',
+        Object.keys(voiceOverTranslationModes),
+        voiceOverTranslationModes
+      ),
+      createCycleControl(
+        'voiceOverTranslationSourceLanguage',
+        'Video language',
+        Object.keys(voiceOverTranslationSourceLanguages),
+        voiceOverTranslationSourceLanguages
+      ),
+      createCycleControl(
+        'voiceOverTranslationTargetLanguage',
+        'Translate to',
+        Object.keys(voiceOverTranslationTargetLanguages),
+        voiceOverTranslationTargetLanguages
+      ),
+      createVoiceOverVolumeControl('voiceOverTranslationOriginalVolume'),
+      createVoiceOverVolumeControl('voiceOverTranslationVolume')
+    ])
+  );
+  elmContainer.appendChild(pageTranslation);
 
   return elmContainer;
 }
@@ -614,7 +760,7 @@ function showOptionsPanel(visible) {
 document.addEventListener('focus', (e) => {
   if (!optionsPanelVisible || !optionsPanel) return;
   const target = e.target;
-  const isSafeFocus = (optionsPanel && optionsPanel.contains(target)) || (target.closest && target.closest('.sb-segments-popup'));
+  const isSafeFocus = (optionsPanel && optionsPanel.contains(target)) || (target.closest && target.closest('.sb-segments-popup, #ytaf-vot-pairing-dialog'));
   if (isSafeFocus) lastSafeFocus = target;
   else {
     e.stopPropagation();
@@ -923,14 +1069,14 @@ function saveToPlaylistLogic() {
 
 function refreshPageLogic() {
     const commandPayload = {
-        clickTrackingParams: "",
+        clickTrackingParams: '',
         signalServiceEndpoint: {
-            signal: "CLIENT_SIGNAL",
+            signal: 'CLIENT_SIGNAL',
             actions: [
                 {
-                    clickTrackingParams: "",
+                    clickTrackingParams: '',
                     signalAction: {
-                        signal: "SOFT_RELOAD_PAGE"
+                        signal: 'SOFT_RELOAD_PAGE'
                     },
                     commandMetadata: {
                         webCommandMetadata: {
@@ -943,7 +1089,7 @@ function refreshPageLogic() {
     };
 
     const appRoot = document.querySelector('ytlr-app') || document.body;
-    console.log("[Shortcut] Triggering soft reload...");
+    console.log('[Shortcut] Triggering soft reload...');
     
     appRoot.dispatchEvent(new CustomEvent('innertube-command', {
         bubbles: true,
@@ -1089,6 +1235,18 @@ function handleShortcutAction(action) {
     case 'toggle_description':
         toggleDescriptionLogic();
         break;
+    case 'toggle_voice_over_translation': {
+        const enabled = !configRead('enableVoiceOverTranslation');
+        configWrite('enableVoiceOverTranslation', enabled);
+        showNotification(enabled ? 'Voice-over Translation Enabled' : 'Voice-over Translation Disabled');
+        break;
+    }
+    case 'toggle_vot_lively_voice': {
+        const enabled = !configRead('enableVoiceOverTranslationLivelyVoice');
+        configWrite('enableVoiceOverTranslationLivelyVoice', enabled);
+        showNotification(enabled ? 'Checking Yandex account…' : 'Standard Voices Enabled');
+        break;
+    }
     case 'save_to_playlist':
         saveToPlaylistLogic();
         break;

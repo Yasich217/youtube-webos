@@ -1,6 +1,6 @@
 {
   "id": "youtube.leanback.v4",
-  "version": "0.8.0",
+  "version": "0.8.5",
   "vendor": "webosbrew.org",
   "type": "web",
   "main": "index.html",
@@ -15,7 +15,7 @@
   "accessibility": {
     "supportsAudioGuidance": true
   },
-  "volumeRatioOnTTS": 50,
+  "volumeRatioOnTTS": 100,
   "vendorExtension": {
     "userAgent": "$browserName$/$browserVersion$ ($platformName$-$platformVersion$), _TV_$chipSetName$/$firmwareVersion$ (LG, $modelName$, $networkMode$)",
     "allowCrossDomain": true,
@@ -23,7 +23,8 @@
     "backgroundColor": "0xFF212121",
     "enableMouse": true,
     "mouseMoveForMouseOff": false,
-    "enableKeyboard": false
+    "enableKeyboard": false,
+    "voiceOverTranslationRevision": "vot.3+upstream.0.8.2"
   },
   "deeplinkingParams": "{\"contentTarget\":\"https://www.youtube.com/tv?v=$CONTENTID\"}",
   "inAppSearchParams": "{\"target\":\"q=$SEARCH_KEYWORD\"}",
