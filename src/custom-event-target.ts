@@ -1,0 +1,85 @@
+import { createCustomEventTargetConstructor } from './legacy-event-target';
+
+type TypedEventPartial<T, U> = {
+  readonly currentTarget: T | null;
+  readonly type: U;
+};
+
+type BaseTypedEvent<T, E extends Event, U> = E & TypedEventPartial<T, U>;
+
+export type TypedCustomEvent<D, T, U = string> = BaseTypedEvent<
+  T,
+  CustomEvent<D>,
+  U
+>;
+
+export const TypedCustomEvent = CustomEvent as {
+  new <const U extends string, const D = undefined>(
+    type: U,
+    eventInitDict?: CustomEventInit<D>
+  ): TypedCustomEvent<D, EventTarget, U>;
+
+  prototype: BaseTypedEvent<EventTarget, CustomEvent<unknown>, string>;
+};
+
+interface EmptyEventMap {}
+
+type EventMapValue<
+  T extends EmptyEventMap,
+  K extends keyof T & string
+> = T[K] extends Event ? T[K] : never;
+
+interface EventListener<
+  Self,
+  T extends EmptyEventMap,
+  EventName extends keyof T
+> {
+  (this: Self, evt: T[EventName] & TypedEventPartial<Self, EventName>): void;
+}
+
+interface EventListenerObject<
+  Self,
+  T extends EmptyEventMap,
+  EventName extends keyof T
+> {
+  handleEvent: EventListener<Self, T, EventName>;
+}
+
+type EventListenerArg<
+  Self,
+  T extends EmptyEventMap,
+  EventName extends keyof T
+> =
+  | EventListener<Self, T, EventName>
+  | EventListenerObject<Self, T, EventName>
+  | null;
+
+interface CustomEventTarget<T extends EmptyEventMap> {
+  addEventListener<K extends keyof T & string>(
+    type: K,
+    callback: EventListenerArg<this, T, K>,
+    options?: boolean | AddEventListenerOptions
+  ): void;
+
+  removeEventListener<K extends keyof T & string>(
+    type: K,
+    callback: EventListenerArg<this, T, K>,
+    options?: boolean | EventListenerOptions
+  ): void;
+
+  dispatchEvent<K extends keyof T & string>(
+    event: EventMapValue<T, K>
+  ): boolean;
+}
+
+export const CustomEventTarget = createCustomEventTargetConstructor(
+  EventTarget
+) as {
+  new <T extends EmptyEventMap>(): CustomEventTarget<T>;
+  prototype: CustomEventTarget<EmptyEventMap>;
+};
+
+export type EventMapOf<T> =
+  T extends CustomEventTarget<infer U>
+    ? { [K in keyof U]: U[K] & TypedEventPartial<T, K> }
+    : never;

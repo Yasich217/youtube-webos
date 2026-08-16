@@ -1,62 +1,57 @@
-import 'whatwg-fetch';
-import './domrect-polyfill';
+// import './perf_mon.js'; // Uncomment for testing
 
-import { handleLaunch } from './utils';
+import 'whatwg-fetch';
+import './polyfills.js';
+import './domrect-polyfill';
+import './adblock.js';
+import './hooks/json-stringify';
+
+import { handleLaunch, SELECTORS, extractLaunchParams } from './utils';
+import { attemptActiveBypass, resetActiveBypass } from './auto-login.js';
+import { isWebOS25, simulatorMode } from './webos-utils.js';
+import { initBlockWebOSCast } from './block-webos-cast';
+import './app_api/index';
+import './ui.js'; // Registers the green-key handler, options panel, video-quality, global styles
+import './sponsorblock.js';
+import './emoji-font.js';
+import './thumbnail-quality.js';
+import './screensaver-fix.js';
+import './yt-fixes.css';
+import './watch.js';
+import './lang-settings-fix';
+import './voice-over-translation';
+import './voice-over-translation/notifications';
+
+import { initBufferLimit } from './hooks/buffer-limit.js';
+import { getWebOSVersion } from './webos-utils.js';
+
+if (typeof initBufferLimit === 'function' && getWebOSVersion() <= 4) {
+	initBufferLimit();
+		console.info('Initiating buffer limit');
+}
+
+(function oneTimeParamsCheck() {
+    const params = extractLaunchParams();
+    if (params && Object.keys(params).length > 0) {
+        attemptActiveBypass();
+    }
+})();
 
 document.addEventListener(
   'webOSRelaunch',
   (evt) => {
     console.info('RELAUNCH:', evt, window.launchParams);
+	resetActiveBypass();
+    if (document.body && document.body.classList.contains(SELECTORS.ACCOUNT_SELECTOR)) {
+        console.info('[Main] Relaunch detected on Account Selector. Triggering bypass.');
+        attemptActiveBypass(true);
+    }
     handleLaunch(evt.detail);
   },
   true
 );
 
-import './adblock.js';
-import { run } from './sponsorblock-module';
-import './ui.js';
-
-try {
-  run();
-} catch (e) {
-  console.error('error running sponsorblock module', e);
+if (isWebOS25() && simulatorMode === false) {
+  console.info('[Main] Enabling webOS Google Cast Block');
+  initBlockWebOSCast();
 }
-
-// This IIFE is to keep the video element fill the entire window so that screensaver doesn't kick in.
-// (async () => {
-//   try {
-//     run();
-//   } catch (e) {
-//     console.error('error running sponsorblock module', e);
-//   }
-//   /** @type {HTMLVideoElement} */
-//   const video = await waitForChildAdd(
-//     document.body,
-//     (node) => node instanceof HTMLVideoElement
-//   );
-
-//   const playerCtrlObs = new MutationObserver(() => {
-//     const style = video.style;
-
-//     const targetWidth = `${window.innerWidth}px`;
-//     const targetHeight = `${window.innerHeight}px`;
-//     const targetLeft = '0px';
-//     // YT uses a negative top to hide player when not in use. Don't know why but let's not affect it.
-//     const targetTop =
-//       style.top === `-${window.innerHeight}px` ? style.top : '0px';
-
-//     /**
-//      * Check to see if identical before assignment as some webOS versions will trigger a mutation
-//      * mutation event even if the assignment effectively does nothing, leading to an infinite loop.
-//      */
-//     style.width !== targetWidth && (style.width = targetWidth);
-//     style.height !== targetHeight && (style.height = targetHeight);
-//     style.left !== targetLeft && (style.left = targetLeft);
-//     style.top !== targetTop && (style.top = targetTop);
-//   });
-
-//   playerCtrlObs.observe(video, {
-//     attributes: true,
-//     attributeFilter: ['style']
-//   });
-// })();
