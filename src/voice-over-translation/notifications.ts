@@ -31,6 +31,9 @@ let activeVideoId: string | null = null;
 let lastStageKey: string | null = null;
 let readyAnnounced = false;
 let playingAnnounced = false;
+let requestAnnounced = false;
+let translationErrorAnnounced = false;
+let audioErrorAnnounced = false;
 let previousState: VoiceOverTranslationPublicState | null = null;
 
 function notificationsEnabled(): boolean {
@@ -70,6 +73,9 @@ function resetPresenter(removeNotification = true): void {
   lastStageKey = null;
   readyAnnounced = false;
   playingAnnounced = false;
+  requestAnnounced = false;
+  translationErrorAnnounced = false;
+  audioErrorAnnounced = false;
 }
 
 function showWorkflowMessage(message: string): void {
@@ -194,6 +200,9 @@ function setActiveVideo(videoId: string | null): void {
   lastStageKey = null;
   readyAnnounced = false;
   playingAnnounced = false;
+  requestAnnounced = false;
+  translationErrorAnnounced = false;
+  audioErrorAnnounced = false;
 }
 
 function presentState(state: VoiceOverTranslationPublicState): void {
@@ -215,12 +224,21 @@ function presentState(state: VoiceOverTranslationPublicState): void {
   if (stage === 'silent') return;
 
   if (stage === 'error') {
+    const translationError = state.status === 'error' || state.hasError;
+    if (
+      (translationError && translationErrorAnnounced) ||
+      (!translationError && audioErrorAnnounced)
+    ) {
+      return;
+    }
+    if (translationError) translationErrorAnnounced = true;
+    else audioErrorAnnounced = true;
     const key = stageKey(state, 'error');
     if (key !== lastStageKey) {
       lastStageKey = key;
       playingAnnounced = false;
       showTerminalMessage(
-        state.status === 'error' || state.hasError
+        translationError
           ? 'Voice-over translation error'
           : 'Voice-over translation audio error'
       );
@@ -229,7 +247,8 @@ function presentState(state: VoiceOverTranslationPublicState): void {
   }
 
   if (stage === 'requesting') {
-    if (sameVideo && waitingActive) return;
+    if (requestAnnounced || (sameVideo && waitingActive)) return;
+    requestAnnounced = true;
     clearCountdown();
     const key = stageKey(state, 'requesting');
     if (key !== lastStageKey) {
@@ -307,6 +326,9 @@ const handleNotificationSettingChange = (): void => {
   lastStageKey = null;
   readyAnnounced = false;
   playingAnnounced = false;
+  requestAnnounced = false;
+  translationErrorAnnounced = false;
+  audioErrorAnnounced = false;
   previousState = null;
   if (notificationsEnabled()) {
     presentState(safeSnapshot(getVoiceOverTranslationState()));

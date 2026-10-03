@@ -1,4 +1,5 @@
-const DEFAULT_ERROR_RETRY_DELAYS_MS = [5_000, 30_000, 60_000];
+// Three failures total: the initial request plus these two retries.
+const DEFAULT_ERROR_RETRY_DELAYS_MS = [5_000, 30_000];
 
 export function translationErrorRetryDelay(
   errorCount,
