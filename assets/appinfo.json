@@ -1,6 +1,6 @@
 {
   "id": "youtube.leanback.v4",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "vendor": "webosbrew.org",
   "type": "web",
   "main": "index.html",
@@ -24,7 +24,7 @@
     "enableMouse": true,
     "mouseMoveForMouseOff": false,
     "enableKeyboard": false,
-    "voiceOverTranslationRevision": "vot.4+upstream.0.8.2"
+    "voiceOverTranslationRevision": "vot.5+upstream.0.8.2"
   },
   "deeplinkingParams": "{\"contentTarget\":\"https://www.youtube.com/tv?v=$CONTENTID\"}",
   "inAppSearchParams": "{\"target\":\"q=$SEARCH_KEYWORD\"}",

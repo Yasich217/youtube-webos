@@ -1,6 +1,6 @@
 import VOTClient from '@vot.js/core';
 import { VideoService } from '@vot.js/core/types/service';
-import type { VideoTranslationResponse } from '@vot.js/core/types/yandex';
+import type { VideoTranslationResponse } from '@vot.js/core/types/providers/yandex';
 import type { RequestLang, ResponseLang } from '@vot.js/shared/types/data';
 
 import {
@@ -21,6 +21,7 @@ import { isVotProxyAuthInvalidError } from './proxy-auth-contract';
 import { votProxyFetch } from './proxy-fetch';
 import { votPairingClient } from './pairing-client';
 import { TranslationSettingsDebounce } from './settings-debounce';
+import { translationErrorRetryDelay } from './translation-retry';
 import {
   inspectYouTubeAudioTracks,
   restoreYouTubeAudioTrack,
@@ -53,8 +54,6 @@ const REQUEST_LANGUAGES = new Set<RequestLang>([
   'en',
   'zh',
   'ko',
-  'lt',
-  'lv',
   'ar',
   'fr',
   'it',
@@ -400,6 +399,8 @@ export class VoiceOverTranslationController {
   #generation = 0;
   #translationRequestInFlight = false;
   #translationRetryTimer: number | null = null;
+  #translationErrorCount = 0;
+  #translationRetryExhaustedGeneration: number | null = null;
   #languageWaitTimer: number | null = null;
   #languageWaitExpiredVideoId: string | null = null;
   #reconcileTimer: number | null = null;
@@ -911,6 +912,8 @@ export class VoiceOverTranslationController {
     this.#abortAudioTrackSwitch();
     this.#generation++;
     this.#translationRequestInFlight = false;
+    this.#translationErrorCount = 0;
+    this.#translationRetryExhaustedGeneration = null;
     this.#clearLanguageWait();
     if (this.#translationRetryTimer !== null) {
       window.clearTimeout(this.#translationRetryTimer);
@@ -1116,6 +1119,7 @@ export class VoiceOverTranslationController {
       this.#manualAudioOverrideVideoId === this.#activeVideoId ||
       this.#translationRequestInFlight ||
       this.#translationRetryTimer !== null ||
+      this.#translationRetryExhaustedGeneration === this.#generation ||
       this.#languageSettingsDebounce.pending ||
       this.#state.status === 'ready'
     ) {
@@ -1262,11 +1266,20 @@ export class VoiceOverTranslationController {
       console.error('[VOT] translation request failed', error);
       this.#restoreVideoVolume('translation error');
       this.#publish({ status: 'error', error: errorMessage(error) });
-      this.#scheduleTranslationRetry(
-        videoId,
-        generation,
+      this.#translationErrorCount++;
+      const retryDelay = translationErrorRetryDelay(
+        this.#translationErrorCount,
         MAX_TRANSLATION_RETRY_MS
       );
+      if (retryDelay === null) {
+        this.#translationRetryExhaustedGeneration = generation;
+        console.warn('[VOT] translation retries exhausted', {
+          videoId,
+          attempts: this.#translationErrorCount
+        });
+      } else {
+        this.#scheduleTranslationRetry(videoId, generation, retryDelay);
+      }
     }
   }
 
@@ -1276,6 +1289,8 @@ export class VoiceOverTranslationController {
     response: VideoTranslationResponse
   ): void {
     if (response.translated) {
+      this.#translationErrorCount = 0;
+      this.#translationRetryExhaustedGeneration = null;
       this.#publish({
         status: 'ready',
         translationId: response.translationId,

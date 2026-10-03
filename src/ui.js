@@ -413,8 +413,6 @@ const voiceOverTranslationSourceLanguages = {
   ru: 'Russian',
   zh: 'Chinese',
   ko: 'Korean',
-  lt: 'Lithuanian',
-  lv: 'Latvian',
   ar: 'Arabic',
   fr: 'French',
   it: 'Italian',

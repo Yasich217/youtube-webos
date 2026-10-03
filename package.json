@@ -1,6 +1,6 @@
 {
   "name": "youtube-webos",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "description": "Ad-free YouTube app for webOS with rooted voice-over translation",
   "type": "module",
   "main": "index.js",
@@ -26,7 +26,7 @@
   "dependencies": {
     "@babel/runtime-corejs3": "^7.28.0",
     "@twemoji/api": "16.0.1",
-    "@vot.js/core": "3.0.2",
+    "@vot.js/core": "3.1.5",
     "core-js-pure": "^3.47.0",
     "regenerator-runtime": "^0.14.1",
     "tiny-sha256": "^1.0.2",
