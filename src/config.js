@@ -64,6 +64,7 @@ const configOptions = new Map([
   ['removeTopLiveGames', { default: false, desc: 'Remove Top Live Games' }],
   ['removeMostRelevant', { default: false, desc: 'Remove "Most Relevant" Shelf' }],
   ['enableSponsorBlock', { default: true, desc: 'SponsorBlock' }],
+  ['enableSponsorBlockPeriodicRefresh', { default: true, desc: 'Periodically Check for New Segments' }],
   ['enableMutedSegments', { default: false, desc: 'Allow segments that mute audio' }],
   ['skipSegmentsOnce', { default: false, desc: 'Skip Segments Once' }],
   ['sbMode_sponsor', { default: 'auto_skip', desc: 'Sponsor' }],

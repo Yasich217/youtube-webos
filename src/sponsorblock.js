@@ -4,13 +4,19 @@ import { showNotification } from './notifications.js';
 import sponsorBlockUI from './Sponsorblock-UI.js';
 import { isLegacyWebOS } from './webos-utils.js';
 import { getVideo, waitForChildAdd } from './utils.js';
+import {
+    SPONSORBLOCK_APIS,
+    SPONSORBLOCK_STATUS_EVENT,
+    getSponsorBlockApiHost,
+    getSponsorBlockRefreshDelay,
+    isSponsorBlockRefreshDue
+} from './sponsorblock-refresh.js';
 import './sponsorblock.css';
 
 const SPONSORBLOCK_CONFIG = {
-    primaryAPI: 'https://sponsorblock.inf.re/api',
-    fallbackAPI: 'https://sponsor.ajay.app/api',
-    timeout: 5000,
-    retryAttempts: 2
+    primaryAPI: SPONSORBLOCK_APIS.primary,
+    fallbackAPI: SPONSORBLOCK_APIS.fallback,
+    timeout: 5000
 };
 
 const CONFIG_MAPPING = {
@@ -90,6 +96,20 @@ class SponsorBlockHandler {
         this.rafIds = new Set();
 
         this.abortController = null;
+
+        // The due time survives a pause, but the timer itself does not. This
+        // makes a long pause refresh immediately on resume without polling in
+        // the background while the user is away.
+        this.refreshTimer = null;
+        this.refreshPromise = null;
+        this.lastCheckedAt = null;
+        this.nextCheckAt = null;
+        this.lastRefreshReason = null;
+        this.lastRefreshOutcome = 'not checked';
+        this.lastApiHost = null;
+        this.lastHttpStatus = null;
+        this.consecutiveEmptyChecks = 0;
+        this.consecutiveFailures = 0;
 
         // High Frequency Polling
         this.pollingRafId = null;
@@ -386,6 +406,22 @@ class SponsorBlockHandler {
             configAddChangeListener(key, this.boundConfigUpdate);
             this.configListeners.push({ key, callback: this.boundConfigUpdate });
         }
+
+        this.boundRefreshConfigUpdate = (event) => {
+            if (!event.detail.newValue) {
+                this.pausePeriodicRefresh();
+                this.nextCheckAt = null;
+                this.publishRefreshStatus();
+                return;
+            }
+
+            this.resumePeriodicRefresh('settings-enabled');
+        };
+        configAddChangeListener('enableSponsorBlockPeriodicRefresh', this.boundRefreshConfigUpdate);
+        this.configListeners.push({
+            key: 'enableSponsorBlockPeriodicRefresh',
+            callback: this.boundRefreshConfigUpdate
+        });
         
         // Initial setup run
         this.boundConfigUpdate();
@@ -513,62 +549,8 @@ class SponsorBlockHandler {
 
         this.start();
 
-        const initVideoID = this.videoID;
         sponsorBlockUI.updateSegments([]);
-
-        const hash = sha256(this.videoID);
-        if (!hash) return;
-        const hashPrefix = hash.substring(0, 4);
-
-        try {
-            const data = await this.fetchSegments(hashPrefix);
-            if (this.isDestroyed || this.videoID !== initVideoID) return;
-            const videoData = Array.isArray(data) ? data.find(x => x.videoID === this.videoID) : data;
-
-            if (!videoData || !videoData.segments || videoData.segments.length === 0) {
-                this.log('debug', 'No SponsorBlock segments available, cleaning up');
-                this.destroy(); 
-                return;
-            }
-
-            // sort in place is fine
-            this.segments = videoData.segments.sort((a, b) => a.segment[0] - b.segment[0]);
-            this.highlightSegment = this.segments.find(s => s.category === 'poi_highlight');
-
-            // Use 'this.video' if start() already found it, or re-query
-            const video = this.video || getVideo();
-            if (video && video.duration && !isNaN(video.duration)) {
-                this.processSegments(video.duration);
-            }
-
-            this.rebuildSkipSegments();
-
-            if (video) {
-                this.executeChainSkip(video);
-            }
-
-            // UI was already started, so now we just update the data
-            sponsorBlockUI.updateSegments(this.segments);
-            
-            // Explicitly draw overlay now that data is ready
-            // (checkForProgressBar might have run when segments were empty)
-            this.drawOverlay();
-
-            if (this.highlightSegment) {
-                const config = configGetAll();
-                const hlMode = config.sbMode_highlight;
-                if (hlMode === 'auto_skip') {
-                    this.jumpToNextHighlight();
-                } else if (hlMode === 'ask') {
-                    showNotification('Highlight available: Press Blue to jump');
-                }
-            }
-        } catch (e) {
-            if (!this.isDestroyed) {
-                showNotification('SB Error: ' + e.message);
-                this.log('warn', 'Fetch failed', e);
-            }
-        }
+        await this.refreshSegments('initial');
     }
 
     start() {
@@ -612,6 +594,7 @@ class SponsorBlockHandler {
                 this._anchorCache = null;
                 this._anchorCacheBar = null;
                 this._lastSyncSig = null;
+                this.pausePeriodicRefresh();
             } else if (state === 1) { // PLAYING
                 // Check for progress bar existence on play in case UI was destroyed (e.g. after side-panel interaction)
                 this._ensureObserverAlive();
@@ -620,9 +603,11 @@ class SponsorBlockHandler {
                 this.resetSegmentTracking();
                 this.hasPerformedChainSkip = false;
                 this.executeChainSkip(this.video);
+                this.resumePeriodicRefresh('player-play');
             } else if (state === 2) { // PAUSED
                 this.stopHighFreqLoop();
                 this.toggleTimeListener(false);
+                this.pausePeriodicRefresh();
             }
         };
         
@@ -667,16 +652,23 @@ class SponsorBlockHandler {
         this.addEvent(this.video, 'playing', () => {
             if (this.isDestroyed) return;
             this.resetSegmentTracking();
+            this.resumePeriodicRefresh('video-playing');
         });
         this.addEvent(this.video, 'pause', () => {
             this.stopHighFreqLoop();
             this.toggleTimeListener(false);
+            this.pausePeriodicRefresh();
+        });
+        this.addEvent(document, 'visibilitychange', () => {
+            if (document.hidden) this.pausePeriodicRefresh();
+            else this.resumePeriodicRefresh('app-visible');
         });
 
         if (this.video.duration) this.processSegments(this.video.duration);
 
         this.observePlayerUI();
         this.checkForProgressBar();
+        if (this.lastCheckedAt) this.resumePeriodicRefresh('video-mounted');
     }
 
     observePlayerUI() {
@@ -1344,26 +1336,176 @@ class SponsorBlockHandler {
         return this.jumpToNextHighlight();
     }
 
+    isVideoPlaying() {
+        return Boolean(this.video && !this.video.paused && !this.video.ended);
+    }
+
+    getRefreshStatus() {
+        const config = configGetAll();
+        return {
+            primaryHost: getSponsorBlockApiHost(SPONSORBLOCK_CONFIG.primaryAPI),
+            fallbackHost: getSponsorBlockApiHost(SPONSORBLOCK_CONFIG.fallbackAPI),
+            lastApiHost: this.lastApiHost,
+            lastHttpStatus: this.lastHttpStatus,
+            lastCheckedAt: this.lastCheckedAt,
+            lastReason: this.lastRefreshReason,
+            nextCheckAt: this.nextCheckAt,
+            outcome: this.lastRefreshOutcome,
+            segmentCount: this.segments.length,
+            refreshEnabled: Boolean(config.enableSponsorBlockPeriodicRefresh),
+            playing: this.isVideoPlaying(),
+            inFlight: Boolean(this.refreshPromise),
+            timerActive: this.refreshTimer !== null
+        };
+    }
+
+    publishRefreshStatus() {
+        const status = this.getRefreshStatus();
+        window.ytaf_sponsorBlockStatus = status;
+        window.dispatchEvent(new CustomEvent(SPONSORBLOCK_STATUS_EVENT, { detail: status }));
+    }
+
+    pausePeriodicRefresh() {
+        if (this.refreshTimer !== null) {
+            clearTimeout(this.refreshTimer);
+            this.refreshTimer = null;
+        }
+        if (!this.isDestroyed) this.publishRefreshStatus();
+    }
+
+    schedulePeriodicRefresh(delay) {
+        this.pausePeriodicRefresh();
+        if (this.isDestroyed || !configGetAll().enableSponsorBlockPeriodicRefresh) {
+            this.nextCheckAt = null;
+            if (!this.isDestroyed) this.publishRefreshStatus();
+            return;
+        }
+
+        if (Number.isFinite(delay)) this.nextCheckAt = Date.now() + Math.max(0, delay);
+        if (!this.isVideoPlaying()) {
+            this.publishRefreshStatus();
+            return;
+        }
+
+        const remaining = Math.max(0, this.nextCheckAt - Date.now());
+        this.refreshTimer = setTimeout(() => {
+            this.refreshTimer = null;
+            if (!this.isVideoPlaying()) {
+                this.publishRefreshStatus();
+                return;
+            }
+            this.refreshSegments('periodic');
+        }, remaining);
+        this.publishRefreshStatus();
+    }
+
+    resumePeriodicRefresh(reason) {
+        if (this.isDestroyed || !configGetAll().enableSponsorBlockPeriodicRefresh || !this.isVideoPlaying()) return;
+        if (this.refreshPromise || this.refreshTimer !== null) return;
+
+        if (isSponsorBlockRefreshDue(Date.now(), this.nextCheckAt)) {
+            this.refreshSegments(reason);
+        } else {
+            this.schedulePeriodicRefresh();
+        }
+    }
+
+    clearSegments() {
+        this.segments = [];
+        this.highlightSegment = null;
+        this.skipSegments = [];
+        this.nextSegmentIndex = 0;
+        this.nextSegmentStart = Infinity;
+        this.lastOverlayHash = null;
+        this.resetSegmentTracking();
+        sponsorBlockUI.updateSegments([]);
+        if (this.overlay) {
+            this.overlay.remove();
+            this.overlay = null;
+        }
+    }
+
+    applySegments(data, reason) {
+        const videoData = Array.isArray(data) ? data.find(x => x.videoID === this.videoID) : data;
+        if (!videoData || !Array.isArray(videoData.segments) || videoData.segments.length === 0) {
+            this.clearSegments();
+            return false;
+        }
+
+        this.segments = videoData.segments.slice().sort((a, b) => a.segment[0] - b.segment[0]);
+        this.highlightSegment = this.segments.find(s => s.category === 'poi_highlight');
+
+        const video = this.video || getVideo();
+        if (video && video.duration && !isNaN(video.duration)) this.processSegments(video.duration);
+        this.rebuildSkipSegments();
+        sponsorBlockUI.updateSegments(this.segments);
+        this.lastOverlayHash = null;
+        this.drawOverlay();
+        if (video) this.executeChainSkip(video);
+
+        if (reason === 'initial' && this.highlightSegment) {
+            const highlightMode = configGetAll().sbMode_highlight;
+            if (highlightMode === 'auto_skip') this.jumpToNextHighlight();
+            else if (highlightMode === 'ask') showNotification('Highlight available: Press Blue to jump');
+        }
+        return true;
+    }
+
+    async refreshSegments(reason = 'manual') {
+        if (this.isDestroyed) return null;
+        if (this.refreshPromise) return this.refreshPromise;
+
+        const hash = sha256(this.videoID);
+        if (!hash) return null;
+
+        this.lastRefreshReason = reason;
+        this.refreshPromise = this.fetchSegments(hash.substring(0, 4));
+        this.publishRefreshStatus();
+
+        try {
+            const result = await this.refreshPromise;
+            if (this.isDestroyed) return null;
+
+            this.lastCheckedAt = Date.now();
+            this.lastApiHost = result.apiHost;
+            this.lastHttpStatus = result.status;
+            const hasSegments = this.applySegments(result.data, reason);
+            this.lastRefreshOutcome = hasSegments ? 'segments' : 'no segments';
+            this.consecutiveFailures = 0;
+            this.consecutiveEmptyChecks = hasSegments ? 0 : this.consecutiveEmptyChecks + 1;
+            this.log('info', `Refresh (${reason}): ${this.lastRefreshOutcome} via ${result.apiHost}`);
+            return result;
+        } catch (error) {
+            if (!this.isDestroyed) {
+                this.lastCheckedAt = Date.now();
+                this.lastRefreshOutcome = 'request failed';
+                this.consecutiveFailures += 1;
+                this.consecutiveEmptyChecks = 0;
+                this.log('warn', `Refresh (${reason}) failed:`, error.message);
+            }
+            return null;
+        } finally {
+            this.refreshPromise = null;
+            if (!this.isDestroyed) {
+                const delay = getSponsorBlockRefreshDelay({
+                    hasSegments: this.segments.length > 0,
+                    consecutiveEmptyChecks: this.consecutiveEmptyChecks,
+                    consecutiveFailures: this.consecutiveFailures
+                });
+                this.schedulePeriodicRefresh(delay);
+            }
+        }
+    }
+
     async fetchSegments(hashPrefix) {
         if (this.isDestroyed) return null;
 
-        const categories = JSON.stringify([
-            'sponsor', 'intro', 'outro', 'interaction', 'selfpromo',
-            'musicofftopic', 'preview', 'chapter', 'poi_highlight',
-            'filler', 'hook'
-        ]);
-        const actionTypes = JSON.stringify(['skip', 'mute']);
-
-        if (this.abortController) {
-            this.abortController.abort();
-        }
-
         const tryFetch = async (url) => {
             if (this.isDestroyed) return null;
+            const apiHost = getSponsorBlockApiHost(url);
 
             try {
                 const fetchURL = `${url}/skipSegments/${hashPrefix}?categories=${FETCH_CATEGORIES}&actionTypes=${FETCH_ACTION_TYPES}`;
-
 
                 let res;
                 if (HAS_ABORT_CONTROLLER) {
@@ -1381,18 +1523,26 @@ class SponsorBlockHandler {
                     ]);
                 }
 
-                return res.ok ? await res.json() : null;
+                if (res.ok) return { ok: true, data: await res.json(), apiHost, status: res.status };
+                return { ok: false, notFound: res.status === 404, apiHost, status: res.status };
             } catch (e) {
                 if (!this.isDestroyed && e.name !== 'AbortError') {
                     this.log('warn', 'Fetch attempt failed:', e.message);
                 }
-                return null;
+                return { ok: false, notFound: false, apiHost, status: null, error: e };
             }
         };
 
-        let res = await tryFetch(SPONSORBLOCK_CONFIG.primaryAPI);
-        if (!res) res = await tryFetch(SPONSORBLOCK_CONFIG.fallbackAPI);
-        return res;
+        const primary = await tryFetch(SPONSORBLOCK_CONFIG.primaryAPI);
+        if (primary?.ok) return primary;
+
+        const fallback = await tryFetch(SPONSORBLOCK_CONFIG.fallbackAPI);
+        if (fallback?.ok) return fallback;
+        if (fallback?.notFound) return { ...fallback, data: [] };
+        if (primary?.notFound) return { ...primary, data: [] };
+
+        const error = fallback?.error || primary?.error;
+        throw error || new Error(`SponsorBlock HTTP ${fallback?.status || primary?.status || 'error'}`);
     }
 
     addEvent(elem, type, handler) {
@@ -1405,6 +1555,11 @@ class SponsorBlockHandler {
     destroy() {
         this.isDestroyed = true;
         this.log('info', 'Destroying instance.');
+
+        if (this.refreshTimer !== null) {
+            clearTimeout(this.refreshTimer);
+            this.refreshTimer = null;
+        }
 
         this.toggleTimeListener(false);
         

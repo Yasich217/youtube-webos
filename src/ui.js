@@ -15,6 +15,7 @@ import { getWebOSVersion } from './webos-utils.js';
 import { showNotification as _showNotification, setNotificationOled, setNotificationTheme } from './notifications.js';
 import { openPairingDialog } from './voice-over-translation/pairing-dialog';
 import { votPairingClient } from './voice-over-translation/pairing-client';
+import { SPONSORBLOCK_APIS, SPONSORBLOCK_STATUS_EVENT, getSponsorBlockApiHost } from './sponsorblock-refresh.js';
 
 // Re-export so existing `import { showNotification } from './ui'` sites keep working.
 export const showNotification = _showNotification;
@@ -205,6 +206,37 @@ function createSection(title, elements) {
   const legend = createElement('div', { text: title, style: { color: '#aaa', fontSize: '2.4vh', marginBottom: '0.4vh', fontWeight: 'bold', textTransform: 'uppercase' }});
   const fieldset = createElement('div', { class: 'ytaf-settings-section', style: { marginTop: '1vh', marginBottom: '0.5vh', padding: '0vh', border: '2px solid #444', borderRadius: '5px' }}, legend, ...elements);
   return fieldset;
+}
+
+function createSponsorBlockStatus() {
+  const element = createElement('small', {
+    style: { display: 'block', color: '#aaa', fontSize: '1.7vh', lineHeight: '1.35', padding: '8px 12px' }
+  });
+  const primaryHost = getSponsorBlockApiHost(SPONSORBLOCK_APIS.primary);
+  const fallbackHost = getSponsorBlockApiHost(SPONSORBLOCK_APIS.fallback);
+
+  const render = () => {
+    const status = window.ytaf_sponsorBlockStatus;
+    const routes = `API: ${primaryHost} (primary) · ${fallbackHost} (fallback)`;
+    element.style.whiteSpace = 'pre-line';
+    if (!status || !status.lastCheckedAt) {
+      element.textContent = `${routes}\nLast check: not yet`;
+      return;
+    }
+
+    const checked = new Date(status.lastCheckedAt).toLocaleTimeString();
+    const http = status.lastHttpStatus ? `HTTP ${status.lastHttpStatus}` : 'network error';
+    let next = 'paused';
+    if (!status.refreshEnabled) next = 'periodic refresh off';
+    else if (status.timerActive && status.nextCheckAt) {
+      next = `next in ${Math.max(0, Math.ceil((status.nextCheckAt - Date.now()) / 60000))} min`;
+    } else if (status.playing && status.inFlight) next = 'checking now';
+    element.textContent = `${routes}\nLast: ${status.lastApiHost || 'none'} · ${http} · ${status.outcome} · ${checked} · ${next}`;
+  };
+
+  window.addEventListener(SPONSORBLOCK_STATUS_EVENT, render);
+  render();
+  return element;
 }
 
 // --- Generic UI Components Factory ---
@@ -624,6 +656,7 @@ function createOptionsPanel() {
   // --- Page 2: SponsorBlock ---
   pageSponsor = createElement('div', { class: 'ytaf-settings-page', id: 'ytaf-page-sponsor', style: { display: 'none' }});
   pageSponsor.appendChild(createConfigCheckbox('enableSponsorBlock'));
+  pageSponsor.appendChild(createConfigCheckbox('enableSponsorBlockPeriodicRefresh'));
   
   const elmBlock = createElement('blockquote', {},
     ...['Sponsor', 'Intro', 'Outro', 'Interaction', 'SelfPromo', 'MusicOfftopic', 'Filler', 'Hook', 'Preview'].map(s => createSegmentControl(`sbMode_${s.toLowerCase()}`)),
@@ -632,7 +665,7 @@ function createOptionsPanel() {
 	createConfigCheckbox('skipSegmentsOnce')
   );
   pageSponsor.appendChild(elmBlock);
-  pageSponsor.appendChild(createElement('div', {}, createElement('small', { text: 'Sponsor segments skipping - https://sponsor.ajay.app' })));
+  pageSponsor.appendChild(createElement('div', {}, createSponsorBlockStatus()));
   elmContainer.appendChild(pageSponsor);
 
   // --- Page 3: Shortcuts ---
